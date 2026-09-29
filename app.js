@@ -46,18 +46,18 @@ const WIDGETS = [
   },
   { 
     id: 'calendar', title: 'Kalender', icon: 'calendar', color: 'var(--c-calendar)', action: () => openPlaceholderOverlay('Kalender', 'var(--c-calendar)', 'calendar'),
-    renderContent: () => `<div style="font-weight:500;color:var(--text);font-size:1rem;">Zahnarzt</div><div style="font-size:0.8rem;">Morgen, 14:00 Uhr</div>`,
-    getPreview: () => 'Nächster Termin in 1 Tag'
+    renderContent: () => `<div class="mini-placeholder"><i data-lucide="calendar-clock"></i>Noch nicht bereit</div>`,
+    getPreview: () => 'In Entwicklung'
   },
   { 
     id: 'weather', title: 'Wetter', icon: 'cloud-sun', color: 'var(--c-weather)', action: () => openPlaceholderOverlay('Wetter', 'var(--c-weather)', 'cloud-sun'),
-    renderContent: () => `<div class="mini-weather-hero"><i data-lucide="cloud-sun"></i> 18°</div>`,
-    getPreview: () => 'Später leichter Regen'
+    renderContent: () => `<div class="mini-placeholder"><i data-lucide="sun-snow"></i>Keine Daten</div>`,
+    getPreview: () => 'In Entwicklung'
   },
   { 
     id: 'trash', title: 'Abfall', icon: 'trash-2', color: 'var(--c-trash)', action: () => openPlaceholderOverlay('Abfallkalender', 'var(--c-trash)', 'trash-2'),
-    renderContent: () => `<div class="mini-list-item"><i data-lucide="trash"></i><span class="mini-text" style="color:var(--text);font-weight:500;">Papiersammlung</span></div><div style="font-size:0.8rem;">Diesen Mittwoch</div>`,
-    getPreview: () => 'In 2 Tagen'
+    renderContent: () => `<div class="mini-placeholder"><i data-lucide="calendar-days"></i>Kein Kalender</div>`,
+    getPreview: () => 'In Entwicklung'
   },
   { 
     id: 'notes', title: 'Notizen', icon: 'sticky-note', color: 'var(--c-notes)', action: openNotes,
@@ -69,18 +69,13 @@ const WIDGETS = [
   },
   { 
     id: 'food', title: 'Essensplan', icon: 'utensils', color: 'var(--c-food)', action: () => openPlaceholderOverlay('Essensplan', 'var(--c-food)', 'utensils'),
-    renderContent: () => `<div style="font-weight:500;color:var(--text);">Spaghetti Bolognese</div><div style="font-size:0.8rem;">Heute Abend</div>`,
-    getPreview: () => 'Alles eingekauft'
+    renderContent: () => `<div class="mini-placeholder"><i data-lucide="chef-hat"></i>Kein Menüplan</div>`,
+    getPreview: () => 'In Entwicklung'
   },
   { 
     id: 'smarthome', title: 'Smart Home', icon: 'home', color: 'var(--c-home)', action: () => openPlaceholderOverlay('Smart Home', 'var(--c-home)', 'home'),
-    renderContent: () => `
-      <div class="mini-smarthome">
-        <div class="mini-sm-item"><i data-lucide="lightbulb" style="color:#ffd60a;"></i> 3 an</div>
-        <div class="mini-sm-item"><i data-lucide="thermometer"></i> 22°C</div>
-      </div>
-    `,
-    getPreview: () => 'Alles normal'
+    renderContent: () => `<div class="mini-placeholder"><i data-lucide="plug"></i>Offline</div>`,
+    getPreview: () => 'In Entwicklung'
   },
 ];
 
