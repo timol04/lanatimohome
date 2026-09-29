@@ -75,7 +75,7 @@ const WIDGETS = [
       if(notesItems.length === 0) return `<div class="mini-placeholder"><i data-lucide="message-square"></i>Keine Notizen</div>`;
       return `<div style="white-space:normal;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:var(--text);font-size:0.85rem;">${escapeHtml(notesItems[0].text)}</div>`;
     },
-    getPreview: () => notesItems.length > 0 ? `Von ${escapeHtml(notesItems[0].author)}` : 'Leer'
+    getPreview: () => notesItems.length > 0 ? `Von ${escapeHtml(formatUserName(notesItems[0].author))}` : 'Leer'
   },
   { 
     id: 'food', title: 'Essensplan', icon: 'utensils', color: 'var(--c-food)', action: () => openPlaceholderOverlay('Essensplan', 'var(--c-food)', 'utensils'),
@@ -804,7 +804,7 @@ function renderNotesList() {
 
     el.innerHTML = `
       <div class="note-header">
-        <strong class="${isMe ? 'is-me' : ''}">${escapeHtml(item.author)}</strong>
+        <strong class="${isMe ? 'is-me' : ''}">${escapeHtml(formatUserName(item.author))}</strong>
         <span>${date}</span>
       </div>
       <div class="note-body">${escapeHtml(item.text)}</div>
@@ -855,6 +855,14 @@ function showToast(msg) {
 
 function escapeHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function formatUserName(rawName) {
+  if (!rawName) return 'Unbekannt';
+  const name = rawName.toLowerCase();
+  if (name === 'timo.lanter') return 'Timo';
+  if (name === 'lana.bopp') return 'Lana';
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 function registerServiceWorker() {
