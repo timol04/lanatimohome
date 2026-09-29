@@ -500,7 +500,6 @@ function initSwipeNavigation() {
     startX = x; isDragging = true;
     animationID = requestAnimationFrame(animation);
     track.style.transition = 'none';
-    container.style.cursor = 'grabbing';
   };
 
   const moveDrag = (x) => {
@@ -511,7 +510,6 @@ function initSwipeNavigation() {
   const endDrag = () => {
     if (window.innerWidth < 768 || !isDragging) return;
     isDragging = false; cancelAnimationFrame(animationID);
-    container.style.cursor = 'grab';
     const movedBy = currentTranslate - prevTranslate;
     track.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
     if (movedBy < -50 && currentCarouselPage < pagesCount - 1) currentCarouselPage += 1;
@@ -527,13 +525,6 @@ function initSwipeNavigation() {
   container.addEventListener('touchstart', e => startDrag(e.touches[0].clientX));
   container.addEventListener('touchmove', e => moveDrag(e.touches[0].clientX));
   container.addEventListener('touchend', endDrag);
-
-  // Mouse Events
-  container.style.cursor = 'grab';
-  container.addEventListener('mousedown', e => startDrag(e.clientX));
-  container.addEventListener('mousemove', e => moveDrag(e.clientX));
-  container.addEventListener('mouseup', endDrag);
-  container.addEventListener('mouseleave', endDrag);
 
   // Trackpad / Wheel Events (2-Finger Swipe)
   let wheelTimeout = null;
