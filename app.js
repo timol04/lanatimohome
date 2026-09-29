@@ -6,7 +6,7 @@
 // ── Supabase Config ───────────────────────────────────────────
 // Deine Supabase-URL und Anon-Key hier eintragen:
 const SUPABASE_URL  = 'https://byzlrafovhigellwnyay.supabase.co';
-const SUPABASE_ANON = 'DEIN_SUPABASE_ANON_KEY_HIER_EINFÜGEN';
+const SUPABASE_ANON = 'sb_publishable_JOqg8swYCaQPhPmPjLpyJA_yZ9DquTx';
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON);
