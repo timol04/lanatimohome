@@ -2,7 +2,7 @@
   "name": "LanaTimoHome",
   "short_name": "LanaTimoHome",
   "description": "Gemeinsames Alltags-Dashboard",
-  "start_url": "/",
+  "start_url": "/lanatimohome/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
