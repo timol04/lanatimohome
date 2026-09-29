@@ -182,7 +182,8 @@ html, body {
 .carousel-container { flex: 1; position: relative; overflow: hidden; }
 .carousel-track { display: flex; height: 100%; transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); will-change: transform; }
 .carousel-page {
-  flex: 0 0 100%; width: 100%; padding: var(--space-md) var(--space-lg) var(--space-xl) var(--space-lg);
+  flex: 0 0 100%; width: 100%; 
+  padding: 32px var(--space-lg) 48px var(--space-lg);
   display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: min-content;
   gap: var(--space-md); align-content: flex-start;
 }
