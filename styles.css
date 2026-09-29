@@ -151,9 +151,93 @@ html, body {
   font-size: 1.1rem; font-weight: 500; color: var(--text);
 }
 .header-weather svg { color: var(--c-weather); stroke-width: 2px; }
+.header-weather svg { color: var(--c-weather); stroke-width: 2px; }
 
-/* Mobile Header Adjustments */
+/* ── Header Center (Greeting & Ambient) ──────────────────────── */
+.header-center {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 var(--space-xl);
+  height: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.greeting-text {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+.greeting-text h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.greeting-text p {
+  font-size: 1rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.ambient-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+/* Ambient Animations */
+.ambient-bg.weather-sun {
+  opacity: 1;
+  background: radial-gradient(circle at center, rgba(255, 170, 0, 0.08) 0%, transparent 60%);
+  animation: pulse-glow 6s infinite alternate ease-in-out;
+}
+.ambient-bg.weather-cloud {
+  opacity: 1;
+  background: radial-gradient(ellipse at 30% 50%, rgba(255, 255, 255, 0.04) 0%, transparent 40%),
+              radial-gradient(ellipse at 70% 60%, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+  animation: drift-clouds 15s infinite alternate ease-in-out;
+}
+.ambient-bg.weather-rain {
+  opacity: 1;
+  background-image: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
+  background-size: 2px 200%;
+  animation: fall-rain 2s infinite linear;
+}
+.ambient-bg.weather-night {
+  opacity: 1;
+  background-image: 
+    radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1.5px 1.5px at 70% 60%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,0.9), transparent),
+    radial-gradient(2px 2px at 80% 20%, rgba(255,255,255,0.4), transparent);
+  animation: twinkle-stars 4s infinite alternate ease-in-out;
+}
+
+@keyframes pulse-glow {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  100% { transform: scale(1.1); opacity: 1; }
+}
+@keyframes drift-clouds {
+  0% { transform: translateX(-10px); }
+  100% { transform: translateX(10px); }
+}
+@keyframes fall-rain {
+  0% { background-position: 0 -100%; }
+  100% { background-position: 0 100%; }
+}
+@keyframes twinkle-stars {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+  /* Mobile Header Adjustments */
 @media (max-width: 767px) {
+  .header-center { display: none; }
   #homescreen-header {
     flex-direction: row;
     align-items: flex-start;

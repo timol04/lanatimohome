@@ -253,6 +253,13 @@ function showDashboard() {
           </button>
         </div>
       </div>
+      <div class="header-center" id="header-center">
+        <div class="ambient-bg" id="ambient-bg"></div>
+        <div class="greeting-text">
+          <h2 id="greeting-title">Guten Tag</h2>
+          <p id="greeting-subtitle">Willkommen zuhause</p>
+        </div>
+      </div>
       <div class="header-right" id="tram-board" style="display:flex; flex-direction:column; gap:8px; margin-top:0;">
         <div class="sbb-title" style="font-size:1.1rem; color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; justify-content:flex-end;">
           <i data-lucide="train-front" style="width:20px;height:20px;color:var(--c-todo);"></i> Abfahrten Allschwil Dorf
@@ -289,8 +296,11 @@ function showDashboard() {
   loadCountdownsData();
   
   loadTramDepartures();
+  updateGreeting();
+
   // Jede Minute die Trams aktualisieren
   setInterval(loadTramDepartures, 60000);
+  setInterval(updateGreeting, 3600000); // Check greeting every hour
 
   loadWeather();
   // Wetter alle 30 Minuten aktualisieren
@@ -408,6 +418,16 @@ async function loadWeather() {
         lucide.createIcons();
       }
 
+      // Update ambient background
+      const ambientBg = document.getElementById('ambient-bg');
+      if (ambientBg) {
+        ambientBg.className = 'ambient-bg'; // reset
+        if (icon.includes('sun')) ambientBg.classList.add('weather-sun');
+        else if (icon.includes('rain') || icon.includes('drizzle')) ambientBg.classList.add('weather-rain');
+        else if (icon.includes('cloud')) ambientBg.classList.add('weather-cloud');
+        else if (icon.includes('moon')) ambientBg.classList.add('weather-night');
+      }
+
       // Update Widget
       updateWidgetInGrid('weather');
       if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('weather-list')) {
@@ -417,6 +437,29 @@ async function loadWeather() {
   } catch(e) {
     console.error('Weather API Error', e);
   }
+}
+
+async function updateGreeting() {
+  const titleEl = document.getElementById('greeting-title');
+  if (!titleEl) return;
+  
+  const hour = new Date().getHours();
+  let greeting = 'Guten Tag';
+  if (hour >= 5 && hour < 12) greeting = 'Guten Morgen';
+  else if (hour >= 12 && hour < 18) greeting = 'Guten Tag';
+  else if (hour >= 18 && hour < 23) greeting = 'Guten Abend';
+  else greeting = 'Gute Nacht';
+
+  try {
+    const { data, error } = await db.from('settings').select('household_names').limit(1).single();
+    if (!error && data && data.household_names) {
+      greeting += `, ${data.household_names}`;
+    }
+  } catch (e) {
+    // Ignore errors, table might not exist
+  }
+  
+  titleEl.innerText = greeting;
 }
 
 function openWeather() {
