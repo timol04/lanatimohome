@@ -1195,6 +1195,45 @@ async function addChore() {
 async function toggleChore(id) {
   const item = choresItems.find(i => i.id === id);
   if (!item) return;
+
+  const isRecurring = item.text.includes('[Täglich]') || item.text.includes('[Wöchentlich]') || item.text.includes('[Monatlich]');
+  
+  if (!item.is_done && isRecurring) {
+    let nextDate = new Date();
+    let newText = item.text;
+    
+    const dateMatch = newText.match(/\(bis (\d{2})\.(\d{2})\.?(\d{4}|\d{2})?\)/);
+    if (dateMatch) {
+      let [_, d, m, y] = dateMatch;
+      if (!y) y = new Date().getFullYear().toString();
+      else if (y.length === 2) y = '20' + y;
+      nextDate = new Date(`${y}-${m}-${d}`);
+    }
+
+    if (newText.includes('[Täglich]')) {
+      nextDate.setDate(nextDate.getDate() + 1);
+    } else if (newText.includes('[Wöchentlich]')) {
+      nextDate.setDate(nextDate.getDate() + 7);
+    } else if (newText.includes('[Monatlich]')) {
+      nextDate.setMonth(nextDate.getMonth() + 1);
+    }
+
+    const nextStr = nextDate.toLocaleDateString('de-CH', {day: '2-digit', month: '2-digit'});
+
+    if (dateMatch) {
+      newText = newText.replace(dateMatch[0], `(bis ${nextStr})`);
+    } else {
+      newText += ` (bis ${nextStr})`;
+    }
+
+    item.text = newText;
+    updateWidgetInGrid('chores');
+    renderChoresList();
+    showToast('Erledigt! Nächster Termin eingeplant.');
+    await db.from('chores').update({ text: newText, is_done: false }).eq('id', id);
+    return;
+  }
+
   item.is_done = !item.is_done;
   updateWidgetInGrid('chores');
   renderChoresList();
