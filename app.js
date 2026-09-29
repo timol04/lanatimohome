@@ -13,17 +13,19 @@ const db = createClient(SUPABASE_URL, SUPABASE_ANON);
 let currentUser = null;
 let realtimeChan = null;
 let shoppingItems = [];
+let todosItems = [];
+let notesItems = [];
 let currentCarouselPage = 0;
 let clockInterval = null;
 
 // ── Widget-Konfiguration ──────────────────────────────────────
 const WIDGETS = [
   { id: 'shopping',  title: 'Einkaufsliste', icon: '🛒', preview: 'Wird geladen...', action: openShopping },
-  { id: 'todo',      title: 'To-Do',         icon: '✅', preview: '0 Aufgaben', action: () => openPlaceholderOverlay('To-Do') },
+  { id: 'todo',      title: 'To-Do',         icon: '✅', preview: 'Wird geladen...', action: openTodos },
   { id: 'calendar',  title: 'Kalender',      icon: '📅', preview: 'Keine Termine', action: () => openPlaceholderOverlay('Kalender') },
   { id: 'weather',   title: 'Wetter',        icon: '⛅️', preview: 'Wird geladen...', action: () => openPlaceholderOverlay('Wetter') },
   { id: 'trash',     title: 'Abfall',        icon: '🗑️', preview: 'Wird geladen...', action: () => openPlaceholderOverlay('Abfallkalender') },
-  { id: 'notes',     title: 'Notizen',       icon: '📌', preview: 'Keine Notizen', action: () => openPlaceholderOverlay('Notizen') },
+  { id: 'notes',     title: 'Notizen',       icon: '📌', preview: 'Wird geladen...', action: openNotes },
   { id: 'food',      title: 'Essensplan',    icon: '🍽️', preview: 'Kein Plan für heute', action: () => openPlaceholderOverlay('Essensplan') },
   { id: 'smarthome', title: 'Smart Home',    icon: '🏠', preview: 'Kommt später', action: () => openPlaceholderOverlay('Smart Home') },
 ];
@@ -157,6 +159,8 @@ function showDashboard() {
   
   // Background Tasks
   loadShoppingData(); // For the preview text
+  loadTodosData();
+  loadNotesData();
 }
 
 function startClock() {
@@ -432,6 +436,229 @@ async function clearDoneShoppingItems() {
 }
 
 // ════════════════════════════════════════════════════════════════
+// TODO LIST WIDGET
+// ════════════════════════════════════════════════════════════════
+let todosChan = null;
+
+async function loadTodosData() {
+  const { data, error } = await db.from('todos').select('*').order('created_at', { ascending: true });
+  if (!error && data) {
+    todosItems = data;
+    updateTodosPreview();
+  }
+  if (!todosChan) {
+    todosChan = db.channel('todos_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, payload => {
+        handleTodosRealtime(payload);
+      }).subscribe();
+  }
+}
+
+function updateTodosPreview() {
+  const openCount = todosItems.filter(i => !i.is_done).length;
+  updateWidgetPreview('todo', `${openCount} Aufgaben`);
+  if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('todo-list')) {
+    renderTodoList();
+  }
+}
+
+function handleTodosRealtime({ eventType, new: n, old: o }) {
+  if (eventType === 'INSERT' && !todosItems.find(i => i.id === n.id)) todosItems.push(n);
+  if (eventType === 'UPDATE') todosItems = todosItems.map(i => i.id === n.id ? n : i);
+  if (eventType === 'DELETE') todosItems = todosItems.filter(i => i.id !== o.id);
+  updateTodosPreview();
+}
+
+function openTodos() {
+  openOverlay('To-Do', () => `
+    <div class="shopping-input-row">
+      <input type="text" id="new-todo-input" placeholder="Neue Aufgabe..." autocomplete="off" />
+      <button id="add-todo-btn" class="btn btn-primary">＋</button>
+    </div>
+    <div class="shopping-toolbar">
+      <span style="font-weight:600">Aufgaben</span>
+      <button id="clear-done-todo-btn" class="btn btn-danger" style="display:none;height:32px;padding:0 12px;font-size:0.8rem;">
+        Erledigte löschen
+      </button>
+    </div>
+    <div id="todo-list"></div>
+  `, () => {
+    document.getElementById('add-todo-btn').addEventListener('click', addTodoItem);
+    document.getElementById('new-todo-input').addEventListener('keydown', e => { if (e.key === 'Enter') addTodoItem(); });
+    document.getElementById('clear-done-todo-btn').addEventListener('click', clearDoneTodos);
+    renderTodoList();
+  });
+}
+
+function renderTodoList() {
+  const list = document.getElementById('todo-list');
+  const clearBtn = document.getElementById('clear-done-todo-btn');
+  if (!list) return;
+
+  const doneCount = todosItems.filter(i => i.is_done).length;
+  if (clearBtn) clearBtn.style.display = doneCount > 0 ? 'block' : 'none';
+
+  list.innerHTML = '';
+  const sorted = [...todosItems.filter(i => !i.is_done), ...todosItems.filter(i => i.is_done)];
+  if (sorted.length === 0) {
+    list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px;">Alles erledigt! 🎉</div>`;
+    return;
+  }
+  sorted.forEach(item => {
+    const el = document.createElement('div');
+    el.className = `shopping-item ${item.is_done ? 'done' : ''}`; // We reuse the shopping item styling
+    el.innerHTML = `
+      <div class="item-check" onclick="toggleTodoItem('${item.id}')">✓</div>
+      <div class="item-text">${escapeHtml(item.text)}</div>
+      <button class="item-delete" onclick="deleteTodoItem('${item.id}')">✕</button>
+    `;
+    list.appendChild(el);
+  });
+}
+
+async function addTodoItem() {
+  const input = document.getElementById('new-todo-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  
+  const tempId = 'temp-' + Date.now();
+  todosItems.push({ id: tempId, text, is_done: false, created_at: new Date().toISOString() });
+  updateTodosPreview();
+
+  const { error } = await db.from('todos').insert([{ text, is_done: false }]);
+  if (error) showToast('Fehler beim Speichern');
+  else loadTodosData();
+}
+
+async function toggleTodoItem(id) {
+  const item = todosItems.find(i => i.id === id);
+  if (!item) return;
+  item.is_done = !item.is_done;
+  updateTodosPreview();
+  await db.from('todos').update({ is_done: item.is_done }).eq('id', id);
+}
+
+async function deleteTodoItem(id) {
+  todosItems = todosItems.filter(i => i.id !== id);
+  updateTodosPreview();
+  await db.from('todos').delete().eq('id', id);
+}
+
+async function clearDoneTodos() {
+  const doneIds = todosItems.filter(i => i.is_done).map(i => i.id);
+  todosItems = todosItems.filter(i => !i.is_done);
+  updateTodosPreview();
+  await db.from('todos').delete().in('id', doneIds);
+}
+
+// ════════════════════════════════════════════════════════════════
+// NOTES WIDGET
+// ════════════════════════════════════════════════════════════════
+let notesChan = null;
+
+async function loadNotesData() {
+  const { data, error } = await db.from('notes').select('*').order('created_at', { ascending: false });
+  if (!error && data) {
+    notesItems = data;
+    updateNotesPreview();
+  }
+  if (!notesChan) {
+    notesChan = db.channel('notes_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, payload => {
+        handleNotesRealtime(payload);
+      }).subscribe();
+  }
+}
+
+function updateNotesPreview() {
+  if (notesItems.length > 0) {
+    updateWidgetPreview('notes', notesItems[0].text);
+  } else {
+    updateWidgetPreview('notes', 'Keine Notizen');
+  }
+  if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('notes-list')) {
+    renderNotesList();
+  }
+}
+
+function handleNotesRealtime({ eventType, new: n, old: o }) {
+  if (eventType === 'INSERT' && !notesItems.find(i => i.id === n.id)) notesItems.unshift(n);
+  if (eventType === 'DELETE') notesItems = notesItems.filter(i => i.id !== o.id);
+  updateNotesPreview();
+}
+
+function openNotes() {
+  openOverlay('Notizen', () => `
+    <div class="shopping-input-row" style="align-items: flex-start;">
+      <textarea id="new-note-input" placeholder="Neue Notiz..." rows="3" style="flex:1; background:var(--bg-input); border:none; border-radius:var(--radius-sm); color:var(--text); padding:12px 16px; font-size:1rem; resize:none; outline:none; font-family:inherit;"></textarea>
+      <button id="add-note-btn" class="btn btn-primary" style="height: auto; align-self: stretch;">Senden</button>
+    </div>
+    <div id="notes-list" style="display:flex; flex-direction:column; gap:12px; margin-top:16px;"></div>
+  `, () => {
+    document.getElementById('add-note-btn').addEventListener('click', addNoteItem);
+    renderNotesList();
+  });
+}
+
+function renderNotesList() {
+  const list = document.getElementById('notes-list');
+  if (!list) return;
+
+  list.innerHTML = '';
+  if (notesItems.length === 0) {
+    list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px;">Noch keine Notizen.</div>`;
+    return;
+  }
+  notesItems.forEach(item => {
+    const el = document.createElement('div');
+    const isMe = item.author === (currentUser?.email?.split('@')[0] ?? 'Unbekannt');
+    
+    el.style.cssText = `
+      background: var(--bg-card);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      position: relative;
+    `;
+    
+    const date = new Date(item.created_at).toLocaleString('de-CH', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+
+    el.innerHTML = `
+      <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.85rem; color:var(--text-muted);">
+        <strong style="color: ${isMe ? 'var(--accent)' : 'var(--text)'};">${escapeHtml(item.author)}</strong>
+        <span>${date}</span>
+      </div>
+      <div style="white-space:pre-wrap; line-height:1.4;">${escapeHtml(item.text)}</div>
+      <button class="item-delete" style="position:absolute; top:12px; right:12px; opacity:0.5; padding:4px;" onclick="deleteNoteItem('${item.id}')">✕</button>
+    `;
+    list.appendChild(el);
+  });
+}
+
+async function addNoteItem() {
+  const input = document.getElementById('new-note-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  
+  const author = currentUser?.email?.split('@')[0] ?? 'Unbekannt';
+  
+  const tempId = 'temp-' + Date.now();
+  notesItems.unshift({ id: tempId, text, author, created_at: new Date().toISOString() });
+  updateNotesPreview();
+
+  const { error } = await db.from('notes').insert([{ text, author }]);
+  if (error) showToast('Fehler beim Speichern');
+  else loadNotesData();
+}
+
+async function deleteNoteItem(id) {
+  notesItems = notesItems.filter(i => i.id !== id);
+  updateNotesPreview();
+  await db.from('notes').delete().eq('id', id);
+}
+
+// ════════════════════════════════════════════════════════════════
 // UTILS
 // ════════════════════════════════════════════════════════════════
 let toastTimer = null;
@@ -454,7 +681,9 @@ function registerServiceWorker() {
   }
 }
 
-// Expose to window for inline HTML handlers if needed
 window.closeOverlay = closeOverlay;
 window.toggleShoppingItem = toggleShoppingItem;
 window.deleteShoppingItem = deleteShoppingItem;
+window.toggleTodoItem = toggleTodoItem;
+window.deleteTodoItem = deleteTodoItem;
+window.deleteNoteItem = deleteNoteItem;
