@@ -290,7 +290,7 @@ async function loadTramDepartures() {
                     <i data-lucide="train-front" style="width:20px;height:20px;color:var(--c-todo);"></i> Abfahrten Allschwil Dorf
                   </div>`;
       
-      data.stationboard.forEach(dep => {
+      data.stationboard.slice(0, 3).forEach(dep => {
         const time = new Date(dep.stop.departure);
         const timeStr = time.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
         
