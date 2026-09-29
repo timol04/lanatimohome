@@ -300,6 +300,12 @@ html, body {
   font-size: 1rem; font-family: inherit; transition: all var(--transition);
 }
 .input-row input { height: var(--touch); }
+.input-row input[type="date"] { position: relative; cursor: pointer; }
+.input-row input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  width: auto; height: auto;
+  color: transparent; background: transparent; cursor: pointer;
+}
 .input-row textarea { padding: var(--space-md); resize: none; }
 .input-row input:focus, .input-row textarea:focus { 
   border-color: var(--w-color);
