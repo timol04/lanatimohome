@@ -603,9 +603,25 @@ function renderShoppingList() {
   sorted.forEach(item => {
     const el = document.createElement('div');
     el.className = `list-item ${item.is_done ? 'done' : ''}`;
+    let itemContentHtml = '';
+    const isMenu = item.text.startsWith('[Menü]');
+    if (isMenu) {
+      const parts = item.text.replace('[Menü] ', '').split('\nZutaten: ');
+      const title = parts[0];
+      const ingredients = parts[1] || 'Keine Zutaten angegeben';
+      itemContentHtml = `
+        <div class="shopping-menu-card">
+          <div class="menu-title"><i data-lucide="chef-hat" style="width:16px;height:16px;"></i> ${escapeHtml(title)}</div>
+          <div class="menu-ingredients">${escapeHtml(ingredients)}</div>
+        </div>
+      `;
+    } else {
+      itemContentHtml = `<div class="item-text">${escapeHtml(item.text)}</div>`;
+    }
+
     el.innerHTML = `
       <div class="item-check" onclick="toggleShoppingItem('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
-      <div class="item-text">${escapeHtml(item.text)}</div>
+      ${itemContentHtml}
       <button class="item-delete" onclick="deleteShoppingItem('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
     `;
     list.appendChild(el);
@@ -901,8 +917,9 @@ function openFoodPlan() {
           <div class="food-day-title" style="font-weight:600; color:var(--text); font-size:0.95rem; margin-bottom:8px; display:flex; justify-content:space-between;">
             ${day} ${isToday ? '<span style="color:var(--c-food);font-size:0.8rem;">(Heute)</span>' : ''}
           </div>
-          <div class="input-row" style="margin-bottom:0;">
+          <div class="input-row" style="margin-bottom:0; display:flex; gap:8px;">
             <input type="text" class="food-day-input" placeholder="Was gibt's?" value="${mealText}" onchange="saveFoodPlan('${day}', this.value)" style="flex:1; min-width:0; background:var(--bg-input); border:2px solid transparent; box-shadow:var(--shadow-inner); border-radius:var(--radius-sm); color:var(--text); padding:8px 12px; font-size:1rem; width:100%; -webkit-appearance:none; appearance:none;" />
+            ${mealText ? `<button class="btn-compact" onclick="addMealToShopping('${escapeHtml(mealText.replace(/'/g, "\\'"))}')" title="Zur Einkaufsliste hinzufügen" style="background:var(--bg-button); color:var(--text); border:none; border-radius:var(--radius-sm); width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i data-lucide="shopping-cart"></i></button>` : ''}
           </div>
         </div>
       `;
@@ -935,6 +952,25 @@ async function saveFoodPlan(day, meal) {
     }
   }
   updateWidgetInGrid('food');
+}
+
+async function addMealToShopping(meal) {
+  const ingredients = prompt(`Zutaten für ${meal} (kommagetrennt):`);
+  if (ingredients === null) return; // User cancelled
+  
+  const text = `[Menü] ${meal}\nZutaten: ${ingredients.trim() ? ingredients.trim() : '... (nichts eingetragen)'}`;
+  
+  const tempId = 'temp-' + Date.now();
+  shoppingItems.unshift({ id: tempId, text, is_done: false, created_at: new Date().toISOString() });
+  updateWidgetInGrid('shopping');
+  
+  const { error } = await db.from('shopping').insert([{ text }]);
+  if (error) {
+    showToast('Fehler beim Hinzufügen zur Einkaufsliste');
+  } else {
+    showToast(`${meal} zur Einkaufsliste hinzugefügt`);
+    loadShoppingData();
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -975,4 +1011,4 @@ window.toggleTodoItem = toggleTodoItem;
 window.deleteTodoItem = deleteTodoItem;
 window.deleteNoteItem = deleteNoteItem;
 window.saveFoodPlan = saveFoodPlan;
-window.saveFoodPlan = saveFoodPlan;
+window.addMealToShopping = addMealToShopping;
