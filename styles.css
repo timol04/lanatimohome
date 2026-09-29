@@ -290,7 +290,7 @@ html, body {
 
 /* ── Listen & Formulare (Material Design) ───────────────────── */
 .input-row { display: flex; gap: var(--space-sm); margin-bottom: var(--space-xl); flex-shrink: 0; }
-.input-row input, .input-row textarea {
+.input-row input, .input-row textarea, .input-row select {
   flex: 1; min-width: 0;
   -webkit-appearance: none; appearance: none;
   background: var(--bg-input); 

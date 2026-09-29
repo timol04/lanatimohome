@@ -1078,9 +1078,9 @@ async function loadChoresData() {
 
 function openChores() {
   openOverlay('Ämtli-Plan', 'var(--c-chores)', () => `
-    <div style="display:flex; gap:8px; margin-bottom:16px;">
-      <input type="text" id="new-chore-input" class="input-modern" placeholder="Was muss geputzt/erledigt werden?" style="flex:1; min-width:0;" />
-      <select id="new-chore-assignee" class="input-modern" style="width:100px; padding:0 8px; flex-shrink:0;">
+    <div class="input-row">
+      <input type="text" id="new-chore-input" placeholder="Was muss geputzt/erledigt werden?" />
+      <select id="new-chore-assignee" style="width:100px; flex:none;">
         <option value="">Wer?</option>
         <option value="Timo">Timo</option>
         <option value="Lana">Lana</option>
@@ -1186,12 +1186,10 @@ async function loadCountdownsData() {
 
 function openCountdowns() {
   openOverlay('Countdowns', 'var(--c-countdown)', () => `
-    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
-      <input type="text" id="new-cd-title" class="input-modern" placeholder="Ereignis (z.B. Malediven 🌴)" />
-      <div style="display:flex; gap:8px;">
-        <input type="date" id="new-cd-date" class="input-modern" style="flex:1;" />
-        <button id="add-cd-btn" class="btn-compact"><i data-lucide="plus"></i></button>
-      </div>
+    <div class="input-row">
+      <input type="text" id="new-cd-title" placeholder="Ereignis (z.B. Malediven 🌴)" />
+      <input type="date" id="new-cd-date" style="flex:none; width:auto; padding-right:12px;" />
+      <button id="add-cd-btn" class="btn-compact"><i data-lucide="plus"></i></button>
     </div>
     <div id="countdowns-list"></div>
   `, () => {
