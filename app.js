@@ -1082,8 +1082,13 @@ async function loadChoresData() {
 function openChores() {
   openOverlay('Ämtli-Plan', 'var(--c-chores)', () => `
     <div style="display:flex; gap:8px; margin-bottom:16px;">
-      <input type="text" id="new-chore-input" class="input-modern" placeholder="Was muss geputzt/erledigt werden?" style="flex:1;" />
-      <button id="add-chore-btn" class="btn-primary" style="background:var(--c-chores);"><i data-lucide="plus"></i></button>
+      <input type="text" id="new-chore-input" class="input-modern" placeholder="Was muss geputzt/erledigt werden?" style="flex:1; min-width:0;" />
+      <select id="new-chore-assignee" class="input-modern" style="width:100px; padding:0 8px; flex-shrink:0;">
+        <option value="">Wer?</option>
+        <option value="Timo">Timo</option>
+        <option value="Lana">Lana</option>
+      </select>
+      <button id="add-chore-btn" class="btn-primary" style="background:var(--c-chores); width:var(--touch); flex-shrink:0;"><i data-lucide="plus"></i></button>
     </div>
     <div id="chores-list"></div>
   `, () => {
@@ -1125,16 +1130,23 @@ function renderChoresList() {
 
 async function addChore() {
   const input = document.getElementById('new-chore-input');
+  const assigneeSelect = document.getElementById('new-chore-assignee');
+  
   const text = input.value.trim();
+  const assignee = assigneeSelect.value;
   if (!text) return;
+  
   input.value = '';
+  assigneeSelect.value = '';
+  
+  const finalText = assignee ? `${text} (${assignee})` : text;
   
   const tempId = 'temp-' + Date.now();
-  choresItems.unshift({ id: tempId, text, is_done: false, created_at: new Date().toISOString() });
+  choresItems.unshift({ id: tempId, text: finalText, is_done: false, created_at: new Date().toISOString() });
   updateWidgetInGrid('chores');
   renderChoresList();
 
-  const { error } = await db.from('chores').insert([{ text, is_done: false }]);
+  const { error } = await db.from('chores').insert([{ text: finalText, is_done: false }]);
   if (error) showToast('Fehler beim Speichern');
   else loadChoresData();
 }
@@ -1181,7 +1193,7 @@ function openCountdowns() {
       <input type="text" id="new-cd-title" class="input-modern" placeholder="Ereignis (z.B. Malediven 🌴)" />
       <div style="display:flex; gap:8px;">
         <input type="date" id="new-cd-date" class="input-modern" style="flex:1;" />
-        <button id="add-cd-btn" class="btn-primary" style="background:var(--c-countdown);"><i data-lucide="plus"></i></button>
+        <button id="add-cd-btn" class="btn-primary" style="background:var(--c-countdown); width:var(--touch); flex-shrink:0;"><i data-lucide="plus"></i></button>
       </div>
     </div>
     <div id="countdowns-list"></div>
