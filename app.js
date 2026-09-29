@@ -980,9 +980,9 @@ async function addMealToShopping(meal) {
   shoppingItems.unshift({ id: tempId, text, is_done: false, created_at: new Date().toISOString() });
   updateWidgetInGrid('shopping');
   
-  const { error } = await db.from('shopping').insert([{ text }]);
+  const { error } = await db.from('shopping_items').insert([{ text, is_done: false }]);
   if (error) {
-    showToast('Fehler beim Hinzufügen zur Einkaufsliste');
+    showToast('Fehler: ' + error.message);
   } else {
     showToast(`${meal} zur Einkaufsliste hinzugefügt`);
     loadShoppingData();
