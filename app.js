@@ -20,14 +20,68 @@ let clockInterval = null;
 
 // ── Widget-Konfiguration ──────────────────────────────────────
 const WIDGETS = [
-  { id: 'shopping',  title: 'Einkaufsliste', icon: 'shopping-cart', preview: 'Wird geladen...', action: openShopping },
-  { id: 'todo',      title: 'To-Do',         icon: 'check-square',  preview: 'Wird geladen...', action: openTodos },
-  { id: 'calendar',  title: 'Kalender',      icon: 'calendar',      preview: 'Keine Termine', action: () => openPlaceholderOverlay('Kalender') },
-  { id: 'weather',   title: 'Wetter',        icon: 'cloud-sun',     preview: 'Wird geladen...', action: () => openPlaceholderOverlay('Wetter') },
-  { id: 'trash',     title: 'Abfall',        icon: 'trash-2',       preview: 'Wird geladen...', action: () => openPlaceholderOverlay('Abfallkalender') },
-  { id: 'notes',     title: 'Notizen',       icon: 'sticky-note',   preview: 'Wird geladen...', action: openNotes },
-  { id: 'food',      title: 'Essensplan',    icon: 'utensils',      preview: 'Kein Plan für heute', action: () => openPlaceholderOverlay('Essensplan') },
-  { id: 'smarthome', title: 'Smart Home',    icon: 'home',          preview: 'Kommt später', action: () => openPlaceholderOverlay('Smart Home') },
+  { 
+    id: 'shopping', title: 'Einkaufsliste', icon: 'shopping-cart', color: 'var(--c-shopping)', action: openShopping,
+    renderContent: () => {
+      const pending = shoppingItems.filter(i => !i.is_done);
+      if(pending.length === 0) return `<div class="mini-placeholder"><i data-lucide="shopping-bag"></i>Alles gekauft</div>`;
+      return pending.slice(0, 3).map(i => `<div class="mini-list-item"><i data-lucide="circle"></i><span class="mini-text">${escapeHtml(i.text)}</span></div>`).join('');
+    },
+    getPreview: () => {
+      const c = shoppingItems.filter(i => !i.is_done).length;
+      return c === 0 ? 'Alles erledigt' : `${c} offene Artikel`;
+    }
+  },
+  { 
+    id: 'todo', title: 'To-Do', icon: 'check-square', color: 'var(--c-todo)', action: openTodos,
+    renderContent: () => {
+      const pending = todosItems.filter(i => !i.is_done);
+      if(pending.length === 0) return `<div class="mini-placeholder"><i data-lucide="check-circle-2"></i>Keine Aufgaben</div>`;
+      return pending.slice(0, 3).map(i => `<div class="mini-list-item"><i data-lucide="square"></i><span class="mini-text">${escapeHtml(i.text)}</span></div>`).join('');
+    },
+    getPreview: () => {
+      const c = todosItems.filter(i => !i.is_done).length;
+      return c === 0 ? 'Alles erledigt' : `${c} Aufgaben`;
+    }
+  },
+  { 
+    id: 'calendar', title: 'Kalender', icon: 'calendar', color: 'var(--c-calendar)', action: () => openPlaceholderOverlay('Kalender', 'var(--c-calendar)', 'calendar'),
+    renderContent: () => `<div style="font-weight:500;color:var(--text);font-size:1rem;">Zahnarzt</div><div style="font-size:0.8rem;">Morgen, 14:00 Uhr</div>`,
+    getPreview: () => 'Nächster Termin in 1 Tag'
+  },
+  { 
+    id: 'weather', title: 'Wetter', icon: 'cloud-sun', color: 'var(--c-weather)', action: () => openPlaceholderOverlay('Wetter', 'var(--c-weather)', 'cloud-sun'),
+    renderContent: () => `<div class="mini-weather-hero"><i data-lucide="cloud-sun"></i> 18°</div>`,
+    getPreview: () => 'Später leichter Regen'
+  },
+  { 
+    id: 'trash', title: 'Abfall', icon: 'trash-2', color: 'var(--c-trash)', action: () => openPlaceholderOverlay('Abfallkalender', 'var(--c-trash)', 'trash-2'),
+    renderContent: () => `<div class="mini-list-item"><i data-lucide="trash"></i><span class="mini-text" style="color:var(--text);font-weight:500;">Papiersammlung</span></div><div style="font-size:0.8rem;">Diesen Mittwoch</div>`,
+    getPreview: () => 'In 2 Tagen'
+  },
+  { 
+    id: 'notes', title: 'Notizen', icon: 'sticky-note', color: 'var(--c-notes)', action: openNotes,
+    renderContent: () => {
+      if(notesItems.length === 0) return `<div class="mini-placeholder"><i data-lucide="message-square"></i>Keine Notizen</div>`;
+      return `<div style="white-space:normal;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:var(--text);font-size:0.85rem;">${escapeHtml(notesItems[0].text)}</div>`;
+    },
+    getPreview: () => notesItems.length > 0 ? `Von ${escapeHtml(notesItems[0].author)}` : 'Leer'
+  },
+  { 
+    id: 'food', title: 'Essensplan', icon: 'utensils', color: 'var(--c-food)', action: () => openPlaceholderOverlay('Essensplan', 'var(--c-food)', 'utensils'),
+    renderContent: () => `<div style="font-weight:500;color:var(--text);">Spaghetti Bolognese</div><div style="font-size:0.8rem;">Heute Abend</div>`,
+    getPreview: () => 'Alles eingekauft'
+  },
+  { 
+    id: 'smarthome', title: 'Smart Home', icon: 'home', color: 'var(--c-home)', action: () => openPlaceholderOverlay('Smart Home', 'var(--c-home)', 'home'),
+    renderContent: () => `
+      <div class="mini-smarthome">
+        <div class="mini-sm-item"><i data-lucide="lightbulb" style="color:#ffd60a;"></i> 3 an</div>
+        <div class="mini-sm-item"><i data-lucide="thermometer"></i> 22°C</div>
+      </div>
+    `,
+    getPreview: () => 'Alles normal'
+  },
 ];
 
 // ── Bootstrap ─────────────────────────────────────────────────
@@ -63,7 +117,7 @@ function showLoginScreen() {
   document.getElementById('app').innerHTML = `
     <div class="login-screen">
       <div class="login-card">
-        <div class="login-logo"><i data-lucide="home" style="width: 48px; height: 48px;"></i></div>
+        <div class="login-logo"><i data-lucide="home"></i></div>
         <h1 class="login-title">LanaTimoHome</h1>
         <p class="login-subtitle">Unser gemeinsames Dashboard</p>
 
@@ -125,36 +179,28 @@ function showLoginScreen() {
 // ════════════════════════════════════════════════════════════════
 function showDashboard() {
   document.getElementById('app').innerHTML = `
-    <!-- Homescreen -->
     <div id="homescreen-header">
       <div class="header-time" id="clock-time">--:--</div>
       <div class="header-date" id="clock-date">Laden...</div>
-      <div class="header-weather" id="header-weather">
-        <i data-lucide="cloud-sun" style="width:24px; height:24px;"></i> 18°C
+      <div class="header-weather">
+        <i data-lucide="cloud-sun"></i> 18°C
       </div>
     </div>
     
     <div class="carousel-container" id="carousel-container">
-      <div class="carousel-track" id="carousel-track">
-        <!-- Pages will be injected here -->
-      </div>
+      <div class="carousel-track" id="carousel-track"></div>
     </div>
+    <div class="page-indicators" id="page-indicators"></div>
 
-    <div class="page-indicators" id="page-indicators">
-      <!-- Dots will be injected here -->
-    </div>
-
-    <!-- Overlay Container (für geöffnete Widgets) -->
     <div id="overlay-container">
-      <div class="overlay-header">
+      <div class="overlay-header" id="overlay-header">
         <button class="overlay-back" onclick="closeOverlay()">
-          <i data-lucide="chevron-left"></i> Zurück
+          <i data-lucide="chevron-left"></i> <span style="font-weight:600">Zurück</span>
         </button>
         <div class="overlay-title" id="overlay-title">Titel</div>
       </div>
       <div class="overlay-content" id="overlay-content"></div>
     </div>
-    
     <div id="toast"></div>
   `;
 
@@ -162,7 +208,6 @@ function showDashboard() {
   renderWidgetGrid();
   initSwipeNavigation();
   
-  // Background Tasks
   loadShoppingData(); 
   loadTodosData();
   loadNotesData();
@@ -203,105 +248,87 @@ function renderWidgetGrid() {
       widgetEl.className = 'widget';
       widgetEl.id = `widget-${w.id}`;
       widgetEl.onclick = w.action;
+      widgetEl.style.setProperty('--w-color', w.color);
       widgetEl.innerHTML = `
-        <div class="widget-icon"><i data-lucide="${w.icon}"></i></div>
-        <div class="widget-title">${w.title}</div>
-        <div class="widget-preview" id="preview-${w.id}">${w.preview}</div>
+        <div class="widget-header-row">
+          <div class="widget-icon"><i data-lucide="${w.icon}"></i></div>
+        </div>
+        <div class="widget-content" id="content-${w.id}">${w.renderContent()}</div>
+        <div class="widget-footer">
+          <div class="widget-title">${w.title}</div>
+          <div class="widget-preview" id="preview-${w.id}">${w.getPreview()}</div>
+        </div>
       `;
       pageEl.appendChild(widgetEl);
     });
 
     track.appendChild(pageEl);
-
-    // Indicator
     const dot = document.createElement('div');
     dot.className = `indicator-dot ${i === 0 ? 'active' : ''}`;
     indicators.appendChild(dot);
   }
 }
 
-function updateWidgetPreview(id, text) {
-  const el = document.getElementById(`preview-${id}`);
-  if (el) el.textContent = text;
+// Update specific widget without full re-render
+function updateWidgetInGrid(id) {
+  const w = WIDGETS.find(x => x.id === id);
+  if (!w) return;
+  const contentEl = document.getElementById(`content-${id}`);
+  const previewEl = document.getElementById(`preview-${id}`);
+  if (contentEl) contentEl.innerHTML = w.renderContent();
+  if (previewEl) previewEl.textContent = w.getPreview();
+  lucide.createIcons();
 }
 
-// ── Swipe Navigation ──────────────────────────────────────────
 function initSwipeNavigation() {
   const container = document.getElementById('carousel-container');
   const track = document.getElementById('carousel-track');
   const indicators = document.getElementById('page-indicators').children;
   
-  let startX = 0;
-  let currentTranslate = 0;
-  let prevTranslate = 0;
-  let isDragging = false;
-  let animationID;
+  let startX = 0, currentTranslate = 0, prevTranslate = 0, isDragging = false, animationID;
   const pagesCount = Math.ceil(WIDGETS.length / 8);
 
-  container.addEventListener('touchstart', touchStart);
-  container.addEventListener('touchmove', touchMove);
-  container.addEventListener('touchend', touchEnd);
-
-  function touchStart(e) {
-    startX = e.touches[0].clientX;
-    isDragging = true;
+  container.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX; isDragging = true;
     animationID = requestAnimationFrame(animation);
     track.style.transition = 'none';
-  }
+  });
 
-  function touchMove(e) {
+  container.addEventListener('touchmove', e => {
     if (!isDragging) return;
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - startX;
-    currentTranslate = prevTranslate + diff;
-  }
+    currentTranslate = prevTranslate + (e.touches[0].clientX - startX);
+  });
 
-  function touchEnd() {
-    isDragging = false;
-    cancelAnimationFrame(animationID);
-    
+  container.addEventListener('touchend', () => {
+    isDragging = false; cancelAnimationFrame(animationID);
     const movedBy = currentTranslate - prevTranslate;
     track.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
+    if (movedBy < -50 && currentCarouselPage < pagesCount - 1) currentCarouselPage += 1;
+    else if (movedBy > 50 && currentCarouselPage > 0) currentCarouselPage -= 1;
     
-    // Threshold for swipe
-    if (movedBy < -50 && currentCarouselPage < pagesCount - 1) {
-      currentCarouselPage += 1;
-    } else if (movedBy > 50 && currentCarouselPage > 0) {
-      currentCarouselPage -= 1;
-    }
-    
-    setPositionByIndex();
-  }
-
-  function animation() {
-    setSliderPosition();
-    if (isDragging) requestAnimationFrame(animation);
-  }
-
-  function setSliderPosition() {
-    track.style.transform = `translateX(${currentTranslate}px)`;
-  }
-
-  function setPositionByIndex() {
     currentTranslate = currentCarouselPage * -window.innerWidth;
     prevTranslate = currentTranslate;
-    setSliderPosition();
-    
-    // Update dots
-    Array.from(indicators).forEach((dot, index) => {
-      dot.classList.toggle('active', index === currentCarouselPage);
-    });
+    track.style.transform = `translateX(${currentTranslate}px)`;
+    Array.from(indicators).forEach((dot, index) => dot.classList.toggle('active', index === currentCarouselPage));
+  });
+
+  function animation() {
+    track.style.transform = `translateX(${currentTranslate}px)`;
+    if (isDragging) requestAnimationFrame(animation);
   }
 }
 
 // ════════════════════════════════════════════════════════════════
 // OVERLAYS (Detail Views)
 // ════════════════════════════════════════════════════════════════
-function openOverlay(title, renderFn, onInit) {
+function openOverlay(title, color, renderFn, onInit) {
   const container = document.getElementById('overlay-container');
-  document.getElementById('overlay-title').textContent = title;
-  const content = document.getElementById('overlay-content');
+  const header = document.getElementById('overlay-header');
   
+  container.style.setProperty('--w-color', color);
+  document.getElementById('overlay-title').textContent = title;
+  
+  const content = document.getElementById('overlay-content');
   content.innerHTML = renderFn();
   if (onInit) onInit();
   
@@ -313,11 +340,12 @@ function closeOverlay() {
   document.getElementById('overlay-container').classList.remove('open');
 }
 
-function openPlaceholderOverlay(title) {
-  openOverlay(title, () => `
+function openPlaceholderOverlay(title, color, iconName) {
+  openOverlay(title, color, () => `
     <div class="empty-state">
-      <i data-lucide="construction"></i>
-      <p>Detailansicht für<br><b>${title}</b><br>kommt später.</p>
+      <div class="empty-icon"><i data-lucide="${iconName}"></i></div>
+      <h3>${title}</h3>
+      <p>Diese Ansicht wird bald entwickelt. Freu dich drauf!</p>
     </div>
   `);
 }
@@ -329,44 +357,28 @@ async function loadShoppingData() {
   const { data, error } = await db.from('shopping_items').select('*').order('created_at', { ascending: true });
   if (!error && data) {
     shoppingItems = data;
-    updateShoppingPreview();
+    updateWidgetInGrid('shopping');
   }
-  
   if (!realtimeChan) {
-    realtimeChan = db.channel('shopping_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items' }, payload => {
-        handleShoppingRealtime(payload);
-      }).subscribe();
+    realtimeChan = db.channel('shopping_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items' }, payload => {
+      if (payload.eventType === 'INSERT' && !shoppingItems.find(i => i.id === payload.new.id)) shoppingItems.push(payload.new);
+      if (payload.eventType === 'UPDATE') shoppingItems = shoppingItems.map(i => i.id === payload.new.id ? payload.new : i);
+      if (payload.eventType === 'DELETE') shoppingItems = shoppingItems.filter(i => i.id !== payload.old.id);
+      updateWidgetInGrid('shopping');
+      if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('shopping-list')) renderShoppingList();
+    }).subscribe();
   }
-}
-
-function updateShoppingPreview() {
-  const openCount = shoppingItems.filter(i => !i.is_done).length;
-  updateWidgetPreview('shopping', `${openCount} offene Artikel`);
-  
-  if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('shopping-list')) {
-    renderShoppingList();
-  }
-}
-
-function handleShoppingRealtime({ eventType, new: n, old: o }) {
-  if (eventType === 'INSERT' && !shoppingItems.find(i => i.id === n.id)) shoppingItems.push(n);
-  if (eventType === 'UPDATE') shoppingItems = shoppingItems.map(i => i.id === n.id ? n : i);
-  if (eventType === 'DELETE') shoppingItems = shoppingItems.filter(i => i.id !== o.id);
-  updateShoppingPreview();
 }
 
 function openShopping() {
-  openOverlay('Einkaufsliste', () => `
+  openOverlay('Einkaufsliste', 'var(--c-shopping)', () => `
     <div class="input-row">
       <input type="text" id="new-item-input" placeholder="Neues Item..." autocomplete="off" />
       <button id="add-item-btn" class="btn-compact"><i data-lucide="plus"></i></button>
     </div>
     <div class="list-toolbar">
       <span>Artikel</span>
-      <button id="clear-done-btn" class="btn-text" style="display:none;">
-        <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen
-      </button>
+      <button id="clear-done-btn" class="btn-text" style="display:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen</button>
     </div>
     <div id="shopping-list"></div>
   `, () => {
@@ -391,8 +403,9 @@ function renderShoppingList() {
   if (sorted.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
-        <i data-lucide="shopping-bag"></i>
-        <p>Die Liste ist leer.</p>
+        <div class="empty-icon"><i data-lucide="shopping-bag"></i></div>
+        <h3>Alles eingekauft!</h3>
+        <p>Der Kühlschrank ist voll. Füge oben neue Artikel hinzu.</p>
       </div>`;
     lucide.createIcons();
     return;
@@ -420,7 +433,8 @@ async function addShoppingItem() {
   
   const tempId = 'temp-' + Date.now();
   shoppingItems.push({ id: tempId, text, is_done: false, created_at: new Date().toISOString() });
-  updateShoppingPreview();
+  updateWidgetInGrid('shopping');
+  renderShoppingList();
 
   const { error } = await db.from('shopping_items').insert([{ text, is_done: false }]);
   if (error) showToast('Fehler beim Speichern');
@@ -431,20 +445,23 @@ async function toggleShoppingItem(id) {
   const item = shoppingItems.find(i => i.id === id);
   if (!item) return;
   item.is_done = !item.is_done;
-  updateShoppingPreview();
+  updateWidgetInGrid('shopping');
+  renderShoppingList();
   await db.from('shopping_items').update({ is_done: item.is_done }).eq('id', id);
 }
 
 async function deleteShoppingItem(id) {
   shoppingItems = shoppingItems.filter(i => i.id !== id);
-  updateShoppingPreview();
+  updateWidgetInGrid('shopping');
+  renderShoppingList();
   await db.from('shopping_items').delete().eq('id', id);
 }
 
 async function clearDoneShoppingItems() {
   const doneIds = shoppingItems.filter(i => i.is_done).map(i => i.id);
   shoppingItems = shoppingItems.filter(i => !i.is_done);
-  updateShoppingPreview();
+  updateWidgetInGrid('shopping');
+  renderShoppingList();
   await db.from('shopping_items').delete().in('id', doneIds);
 }
 
@@ -457,42 +474,28 @@ async function loadTodosData() {
   const { data, error } = await db.from('todos').select('*').order('created_at', { ascending: true });
   if (!error && data) {
     todosItems = data;
-    updateTodosPreview();
+    updateWidgetInGrid('todo');
   }
   if (!todosChan) {
-    todosChan = db.channel('todos_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, payload => {
-        handleTodosRealtime(payload);
-      }).subscribe();
+    todosChan = db.channel('todos_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, payload => {
+      if (payload.eventType === 'INSERT' && !todosItems.find(i => i.id === payload.new.id)) todosItems.push(payload.new);
+      if (payload.eventType === 'UPDATE') todosItems = todosItems.map(i => i.id === payload.new.id ? payload.new : i);
+      if (payload.eventType === 'DELETE') todosItems = todosItems.filter(i => i.id !== payload.old.id);
+      updateWidgetInGrid('todo');
+      if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('todo-list')) renderTodoList();
+    }).subscribe();
   }
-}
-
-function updateTodosPreview() {
-  const openCount = todosItems.filter(i => !i.is_done).length;
-  updateWidgetPreview('todo', `${openCount} Aufgaben`);
-  if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('todo-list')) {
-    renderTodoList();
-  }
-}
-
-function handleTodosRealtime({ eventType, new: n, old: o }) {
-  if (eventType === 'INSERT' && !todosItems.find(i => i.id === n.id)) todosItems.push(n);
-  if (eventType === 'UPDATE') todosItems = todosItems.map(i => i.id === n.id ? n : i);
-  if (eventType === 'DELETE') todosItems = todosItems.filter(i => i.id !== o.id);
-  updateTodosPreview();
 }
 
 function openTodos() {
-  openOverlay('To-Do', () => `
+  openOverlay('To-Do', 'var(--c-todo)', () => `
     <div class="input-row">
       <input type="text" id="new-todo-input" placeholder="Neue Aufgabe..." autocomplete="off" />
       <button id="add-todo-btn" class="btn-compact"><i data-lucide="plus"></i></button>
     </div>
     <div class="list-toolbar">
       <span>Aufgaben</span>
-      <button id="clear-done-todo-btn" class="btn-text" style="display:none;">
-        <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen
-      </button>
+      <button id="clear-done-todo-btn" class="btn-text" style="display:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen</button>
     </div>
     <div id="todo-list"></div>
   `, () => {
@@ -516,8 +519,9 @@ function renderTodoList() {
   if (sorted.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
-        <i data-lucide="check-circle-2"></i>
-        <p>Alles erledigt! 🎉</p>
+        <div class="empty-icon"><i data-lucide="check-circle-2"></i></div>
+        <h3>Alles erledigt! 🎉</h3>
+        <p>Genieße den Tag, du hast keine offenen Aufgaben mehr.</p>
       </div>`;
     lucide.createIcons();
     return;
@@ -544,7 +548,8 @@ async function addTodoItem() {
   
   const tempId = 'temp-' + Date.now();
   todosItems.push({ id: tempId, text, is_done: false, created_at: new Date().toISOString() });
-  updateTodosPreview();
+  updateWidgetInGrid('todo');
+  renderTodoList();
 
   const { error } = await db.from('todos').insert([{ text, is_done: false }]);
   if (error) showToast('Fehler beim Speichern');
@@ -555,20 +560,23 @@ async function toggleTodoItem(id) {
   const item = todosItems.find(i => i.id === id);
   if (!item) return;
   item.is_done = !item.is_done;
-  updateTodosPreview();
+  updateWidgetInGrid('todo');
+  renderTodoList();
   await db.from('todos').update({ is_done: item.is_done }).eq('id', id);
 }
 
 async function deleteTodoItem(id) {
   todosItems = todosItems.filter(i => i.id !== id);
-  updateTodosPreview();
+  updateWidgetInGrid('todo');
+  renderTodoList();
   await db.from('todos').delete().eq('id', id);
 }
 
 async function clearDoneTodos() {
   const doneIds = todosItems.filter(i => i.is_done).map(i => i.id);
   todosItems = todosItems.filter(i => !i.is_done);
-  updateTodosPreview();
+  updateWidgetInGrid('todo');
+  renderTodoList();
   await db.from('todos').delete().in('id', doneIds);
 }
 
@@ -581,37 +589,22 @@ async function loadNotesData() {
   const { data, error } = await db.from('notes').select('*').order('created_at', { ascending: false });
   if (!error && data) {
     notesItems = data;
-    updateNotesPreview();
+    updateWidgetInGrid('notes');
   }
   if (!notesChan) {
-    notesChan = db.channel('notes_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, payload => {
-        handleNotesRealtime(payload);
-      }).subscribe();
+    notesChan = db.channel('notes_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, payload => {
+      if (payload.eventType === 'INSERT' && !notesItems.find(i => i.id === payload.new.id)) notesItems.unshift(payload.new);
+      if (payload.eventType === 'DELETE') notesItems = notesItems.filter(i => i.id !== payload.old.id);
+      updateWidgetInGrid('notes');
+      if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('notes-list')) renderNotesList();
+    }).subscribe();
   }
-}
-
-function updateNotesPreview() {
-  if (notesItems.length > 0) {
-    updateWidgetPreview('notes', notesItems[0].text);
-  } else {
-    updateWidgetPreview('notes', 'Keine Notizen');
-  }
-  if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('notes-list')) {
-    renderNotesList();
-  }
-}
-
-function handleNotesRealtime({ eventType, new: n, old: o }) {
-  if (eventType === 'INSERT' && !notesItems.find(i => i.id === n.id)) notesItems.unshift(n);
-  if (eventType === 'DELETE') notesItems = notesItems.filter(i => i.id !== o.id);
-  updateNotesPreview();
 }
 
 function openNotes() {
-  openOverlay('Notizen', () => `
+  openOverlay('Notizen', 'var(--c-notes)', () => `
     <div class="input-row">
-      <textarea id="new-note-input" placeholder="Neue Notiz..." rows="2"></textarea>
+      <textarea id="new-note-input" placeholder="Neue Notiz schreiben..." rows="2"></textarea>
       <button id="add-note-btn" class="btn-compact" style="height: auto;"><i data-lucide="send"></i></button>
     </div>
     <div id="notes-list"></div>
@@ -629,8 +622,9 @@ function renderNotesList() {
   if (notesItems.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
-        <i data-lucide="message-square"></i>
-        <p>Noch keine Notizen.</p>
+        <div class="empty-icon"><i data-lucide="message-square"></i></div>
+        <h3>Noch keine Notizen</h3>
+        <p>Hinterlasse dem anderen eine kurze Nachricht.</p>
       </div>`;
     lucide.createIcons();
     return;
@@ -639,7 +633,6 @@ function renderNotesList() {
     const el = document.createElement('div');
     el.className = 'note-card';
     const isMe = item.author === (currentUser?.email?.split('@')[0] ?? 'Unbekannt');
-    
     const date = new Date(item.created_at).toLocaleString('de-CH', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 
     el.innerHTML = `
@@ -648,9 +641,7 @@ function renderNotesList() {
         <span>${date}</span>
       </div>
       <div class="note-body">${escapeHtml(item.text)}</div>
-      <button class="note-delete" onclick="deleteNoteItem('${item.id}')">
-        <i data-lucide="x" style="width:16px;height:16px;"></i>
-      </button>
+      <button class="note-delete" onclick="deleteNoteItem('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
     `;
     list.appendChild(el);
   });
@@ -665,10 +656,10 @@ async function addNoteItem() {
   input.value = '';
   
   const author = currentUser?.email?.split('@')[0] ?? 'Unbekannt';
-  
   const tempId = 'temp-' + Date.now();
   notesItems.unshift({ id: tempId, text, author, created_at: new Date().toISOString() });
-  updateNotesPreview();
+  updateWidgetInGrid('notes');
+  renderNotesList();
 
   const { error } = await db.from('notes').insert([{ text, author }]);
   if (error) showToast('Fehler beim Speichern');
@@ -677,7 +668,8 @@ async function addNoteItem() {
 
 async function deleteNoteItem(id) {
   notesItems = notesItems.filter(i => i.id !== id);
-  updateNotesPreview();
+  updateWidgetInGrid('notes');
+  renderNotesList();
   await db.from('notes').delete().eq('id', id);
 }
 
