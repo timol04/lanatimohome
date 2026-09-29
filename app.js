@@ -270,9 +270,11 @@ async function loadTramDepartures() {
         const line = dep.number;
         const dest = dep.to;
         html += `
-          <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px; font-size:0.9rem;">
-            <span style="background:var(--bg-card-bot); border:1px solid var(--border); color:var(--text); padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600;">${line}</span>
-            <span style="color:var(--text); max-width:130px; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${dest}</span>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:0.9rem; width:100%;">
+            <div style="display:flex; align-items:center; gap:8px; flex:1;">
+              <span style="background:var(--bg-card-bot); border:1px solid var(--border); color:var(--text); padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600; min-width:26px; text-align:center;">${line}</span>
+              <span style="color:var(--text); max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${dest}</span>
+            </div>
             <span style="color:var(--c-home); font-weight:600; width:45px; text-align:right;">${timeDisplay}</span>
           </div>
         `;
