@@ -194,7 +194,7 @@ function showDashboard() {
       </div>
       <div class="header-right" id="tram-board" style="display:flex; flex-direction:column; gap:8px; margin-top:0;">
         <div class="sbb-title" style="font-size:1.1rem; color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; justify-content:flex-end;">
-          <i data-lucide="train-front" style="width:20px;height:20px;color:var(--c-todo);"></i> Abfahrten...
+          <i data-lucide="train-front" style="width:20px;height:20px;color:var(--c-todo);"></i> Abfahrten Allschwil Dorf
         </div>
       </div>
     </div>
@@ -260,7 +260,7 @@ async function loadTramDepartures() {
     const data = await res.json();
     if (data.stationboard && data.stationboard.length > 0) {
       let html = `<div class="sbb-title" style="font-size:1.1rem; color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; justify-content:flex-end; margin-bottom:8px;">
-                    <i data-lucide="train-front" style="width:20px;height:20px;color:var(--c-todo);"></i> Abfahrten
+                    <i data-lucide="train-front" style="width:20px;height:20px;color:var(--c-todo);"></i> Abfahrten Allschwil Dorf
                   </div>`;
       
       data.stationboard.forEach(dep => {
