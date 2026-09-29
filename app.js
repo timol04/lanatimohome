@@ -1074,6 +1074,7 @@ async function loadChoresData() {
   const { data, error } = await db.from('chores').select('*').order('created_at', { ascending: false });
   if (!error && data) {
     choresItems = data;
+    await autoResetChores();
     updateWidgetInGrid('chores');
   }
   if (!choresChan) {
@@ -1084,6 +1085,38 @@ async function loadChoresData() {
       updateWidgetInGrid('chores');
       renderChoresList();
     }).subscribe();
+  }
+}
+
+async function autoResetChores() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  let changed = false;
+  
+  for (let item of choresItems) {
+    if (item.is_done) {
+      const isRecurring = item.text.includes('[Täglich]') || item.text.includes('[Wöchentlich]') || item.text.includes('[Monatlich]');
+      if (isRecurring) {
+        const dateMatch = item.text.match(/\(bis (\d{2})\.(\d{2})\.?(\d{4}|\d{2})?\)/);
+        if (dateMatch) {
+          let [_, d, m, y] = dateMatch;
+          if (!y) y = new Date().getFullYear().toString();
+          else if (y.length === 2) y = '20' + y;
+          const dueDate = new Date(`${y}-${m}-${d}`);
+          dueDate.setHours(0,0,0,0);
+          
+          if (today >= dueDate) {
+            item.is_done = false;
+            changed = true;
+            await db.from('chores').update({ is_done: false }).eq('id', item.id);
+          }
+        }
+      }
+    }
+  }
+  if (changed) {
+    updateWidgetInGrid('chores');
+    renderChoresList();
   }
 }
 
@@ -1250,10 +1283,11 @@ async function toggleChore(id) {
     }
 
     item.text = newText;
+    item.is_done = true; // Nun wird es ausgegraut!
     updateWidgetInGrid('chores');
     renderChoresList();
-    showToast('Erledigt! Nächster Termin eingeplant.');
-    await db.from('chores').update({ text: newText, is_done: false }).eq('id', id);
+    showToast('Bis zum nächsten Intervall ausgegraut!');
+    await db.from('chores').update({ text: newText, is_done: true }).eq('id', id);
     return;
   }
 
@@ -1266,29 +1300,21 @@ async function toggleChore(id) {
 async function clearDoneChores() {
   const doneItems = choresItems.filter(i => i.is_done);
   const toDelete = [];
-  const toReset = [];
   
   doneItems.forEach(item => {
-    // Wenn es ein Intervall im Text hat, setzen wir es nur zurück
-    if (item.text.includes('[Täglich]') || item.text.includes('[Wöchentlich]') || item.text.includes('[Monatlich]')) {
-      toReset.push(item);
-    } else {
+    // Wiederkehrende Ämtlis ignorieren (sie bleiben ausgegraut, bis das Datum fällig ist)
+    const isRecurring = item.text.includes('[Täglich]') || item.text.includes('[Wöchentlich]') || item.text.includes('[Monatlich]');
+    if (!isRecurring) {
       toDelete.push(item.id);
     }
   });
 
-  // UI sofort updaten
   choresItems = choresItems.filter(i => !toDelete.includes(i.id));
-  toReset.forEach(item => item.is_done = false);
   updateWidgetInGrid('chores');
   renderChoresList();
 
-  // DB Sync
   if (toDelete.length > 0) {
     await db.from('chores').delete().in('id', toDelete);
-  }
-  for (const item of toReset) {
-    await db.from('chores').update({ is_done: false }).eq('id', item.id);
   }
 }
 
