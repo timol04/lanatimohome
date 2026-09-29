@@ -454,17 +454,19 @@ function initSwipeNavigation() {
   const pagesCount = Math.ceil(WIDGETS.length / 8);
 
   container.addEventListener('touchstart', e => {
+    if (window.innerWidth < 768) return;
     startX = e.touches[0].clientX; isDragging = true;
     animationID = requestAnimationFrame(animation);
     track.style.transition = 'none';
   });
 
   container.addEventListener('touchmove', e => {
-    if (!isDragging) return;
+    if (window.innerWidth < 768 || !isDragging) return;
     currentTranslate = prevTranslate + (e.touches[0].clientX - startX);
   });
 
   container.addEventListener('touchend', () => {
+    if (window.innerWidth < 768) return;
     isDragging = false; cancelAnimationFrame(animationID);
     const movedBy = currentTranslate - prevTranslate;
     track.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';

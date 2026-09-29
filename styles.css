@@ -150,16 +150,36 @@ html, body {
 }
 .header-weather svg { color: var(--c-weather); stroke-width: 2px; }
 
-/* ── Carousel ────────────────────────────────────────────────── */
+/* Mobile Header Adjustments */
+@media (max-width: 767px) {
+  #homescreen-header {
+    flex-direction: column;
+    padding: 32px var(--space-md) var(--space-md) var(--space-md);
+    gap: 20px;
+  }
+  .header-time { font-size: 3.5rem; }
+  /* SBB Module linksbündig auf Mobile */
+  #tram-board { align-items: flex-start !important; }
+  #tram-board > div { justify-content: flex-start !important; }
+}
+
+/* ── Carousel / Grid ─────────────────────────────────────────── */
 .carousel-container { flex: 1; position: relative; overflow: hidden; }
 .carousel-track { display: flex; height: 100%; transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); will-change: transform; }
 .carousel-page {
-  flex: 0 0 100%; width: 100%; padding: var(--space-md) var(--space-lg) var(--space-lg) var(--space-lg);
+  flex: 0 0 100%; width: 100%; padding: var(--space-md) var(--space-lg) var(--space-xl) var(--space-lg);
   display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: min-content;
   gap: var(--space-md); align-content: flex-start;
 }
 @media (min-width: 768px) {
   .carousel-page { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .carousel-container { overflow-y: auto !important; }
+  .carousel-track { flex-direction: column; height: auto; }
+  .carousel-page { padding: var(--space-md); gap: var(--space-md); }
+  .page-indicators { display: none !important; }
 }
 
 /* ── Widget Kachel ───────────────────────────────────────────── */
@@ -205,6 +225,14 @@ html, body {
 .widget-footer { margin-top: auto; }
 .widget-title { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
 .widget-preview { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Hide Previews on Mobile for app-like grid */
+@media (max-width: 767px) {
+  .widget { aspect-ratio: 1 / 1; padding: var(--space-md); }
+  .widget-content { display: none !important; }
+  .widget-preview { display: none !important; }
+  .widget-title { font-size: 0.95rem; margin-bottom: 0; }
+}
 
 .mini-list-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mini-list-item svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--w-color); stroke-width: 2px; }
