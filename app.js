@@ -535,6 +535,34 @@ function initSwipeNavigation() {
   container.addEventListener('mouseup', endDrag);
   container.addEventListener('mouseleave', endDrag);
 
+  // Trackpad / Wheel Events (2-Finger Swipe)
+  let wheelTimeout = null;
+  container.addEventListener('wheel', e => {
+    if (window.innerWidth < 768) return;
+    // Wenn horizontales Scrollen stärker ist als vertikales
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      e.preventDefault();
+      if (wheelTimeout) return; // Debounce
+      
+      if (e.deltaX > 20 && currentCarouselPage < pagesCount - 1) {
+        currentCarouselPage += 1;
+        triggerWheelChange();
+      } else if (e.deltaX < -20 && currentCarouselPage > 0) {
+        currentCarouselPage -= 1;
+        triggerWheelChange();
+      }
+    }
+  }, { passive: false });
+
+  function triggerWheelChange() {
+    track.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
+    currentTranslate = currentCarouselPage * -window.innerWidth;
+    prevTranslate = currentTranslate;
+    track.style.transform = `translateX(${currentTranslate}px)`;
+    Array.from(indicators).forEach((dot, index) => dot.classList.toggle('active', index === currentCarouselPage));
+    wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 600);
+  }
+
   function animation() {
     track.style.transform = `translateX(${currentTranslate}px)`;
     if (isDragging) requestAnimationFrame(animation);
