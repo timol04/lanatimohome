@@ -15,8 +15,10 @@ let realtimeChan = null;
 let shoppingItems = [];
 let todosItems = [];
 let notesItems = [];
+let foodItems = [];
 let currentCarouselPage = 0;
 let clockInterval = null;
+let foodChan = null;
 let currentWeatherData = { temp: '--', icon: 'cloud-sun', desc: 'Laden...', high: '--', low: '--', daily: [] };
 
 // ── Widget-Konfiguration ──────────────────────────────────────
@@ -78,9 +80,28 @@ const WIDGETS = [
     getPreview: () => notesItems.length > 0 ? `Von ${escapeHtml(formatUserName(notesItems[0].author))}` : 'Leer'
   },
   { 
-    id: 'food', title: 'Essensplan', icon: 'utensils', color: 'var(--c-food)', action: () => openPlaceholderOverlay('Essensplan', 'var(--c-food)', 'utensils'),
-    renderContent: () => `<div class="mini-placeholder"><i data-lucide="chef-hat"></i>Kein Menüplan</div>`,
-    getPreview: () => 'In Entwicklung'
+    id: 'food', title: 'Essensplan', icon: 'utensils', color: 'var(--c-food)', action: openFoodPlan,
+    renderContent: () => {
+      const todayIndex = new Date().getDay() || 7;
+      const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+      const todayName = days[todayIndex-1];
+      const tomorrowName = days[todayIndex % 7];
+      const todayMeal = foodItems.find(f => f.day === todayName)?.meal;
+      const tomorrowMeal = foodItems.find(f => f.day === tomorrowName)?.meal;
+      
+      let html = '';
+      if(todayMeal) html += `<div class="mini-list-item"><i data-lucide="utensils"></i><span class="mini-text">Heute: ${escapeHtml(todayMeal)}</span></div>`;
+      if(tomorrowMeal) html += `<div class="mini-list-item"><i data-lucide="utensils" style="opacity:0.5;"></i><span class="mini-text" style="opacity:0.8;">Morgen: ${escapeHtml(tomorrowMeal)}</span></div>`;
+      
+      if(!html) return `<div class="mini-placeholder"><i data-lucide="chef-hat"></i>Nichts geplant</div>`;
+      return html;
+    },
+    getPreview: () => {
+      const todayIndex = new Date().getDay() || 7;
+      const todayName = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'][todayIndex-1];
+      const meal = foodItems.find(f => f.day === todayName)?.meal;
+      return meal ? meal : 'Nichts geplant';
+    }
   },
   { 
     id: 'smarthome', title: 'Smart Home', icon: 'home', color: 'var(--c-home)', action: () => openPlaceholderOverlay('Smart Home', 'var(--c-home)', 'home'),
@@ -223,6 +244,7 @@ function showDashboard() {
   loadShoppingData(); 
   loadTodosData();
   loadNotesData();
+  loadFoodData();
   
   loadTramDepartures();
   // Jede Minute die Trams aktualisieren
@@ -841,6 +863,81 @@ async function deleteNoteItem(id) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// ESSENSPLAN OVERLAY
+// ════════════════════════════════════════════════════════════════
+async function loadFoodData() {
+  const { data, error } = await db.from('food_plan').select('*');
+  if (!error && data) {
+    foodItems = data;
+    updateWidgetInGrid('food');
+  }
+  if (!foodChan) {
+    foodChan = db.channel('food_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'food_plan' }, payload => {
+      if (payload.eventType === 'INSERT' && !foodItems.find(i => i.id === payload.new.id)) foodItems.push(payload.new);
+      if (payload.eventType === 'UPDATE') foodItems = foodItems.map(i => i.id === payload.new.id ? payload.new : i);
+      if (payload.eventType === 'DELETE') foodItems = foodItems.filter(i => i.id !== payload.old.id);
+      updateWidgetInGrid('food');
+      if (document.getElementById('overlay-container').classList.contains('open') && document.querySelector('.food-day-card')) {
+        openFoodPlan(); // Reload view
+      }
+    }).subscribe();
+  }
+}
+
+function openFoodPlan() {
+  const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+  const todayIndex = new Date().getDay() || 7;
+  
+  openOverlay('Essensplan', 'var(--c-food)', () => {
+    let html = `<div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">`;
+    
+    days.forEach((day, index) => {
+      const isToday = (index + 1 === todayIndex);
+      const existing = foodItems.find(f => f.day === day);
+      const mealText = existing ? escapeHtml(existing.meal) : '';
+      
+      html += `
+        <div class="food-day-card ${isToday ? 'is-today' : ''}" style="background:var(--bg-card); padding:12px; border-radius:var(--radius-md); ${isToday ? 'border:1px solid var(--c-food); box-shadow:0 0 12px color-mix(in srgb, var(--c-food) 20%, transparent);' : ''}">
+          <div class="food-day-title" style="font-weight:600; color:var(--text); font-size:0.95rem; margin-bottom:8px; display:flex; justify-content:space-between;">
+            ${day} ${isToday ? '<span style="color:var(--c-food);font-size:0.8rem;">(Heute)</span>' : ''}
+          </div>
+          <div class="input-row" style="margin-bottom:0;">
+            <input type="text" class="food-day-input" placeholder="Was gibt's?" value="${mealText}" onchange="saveFoodPlan('${day}', this.value)" style="flex:1; min-width:0; background:var(--bg-input); border:2px solid transparent; box-shadow:var(--shadow-inner); border-radius:var(--radius-sm); color:var(--text); padding:8px 12px; font-size:1rem; width:100%; -webkit-appearance:none; appearance:none;" />
+          </div>
+        </div>
+      `;
+    });
+    
+    html += `</div>`;
+    return html;
+  });
+}
+
+async function saveFoodPlan(day, meal) {
+  const existing = foodItems.find(f => f.day === day);
+  const trimmed = meal.trim();
+  
+  if (existing) {
+    if (!trimmed) {
+      foodItems = foodItems.filter(f => f.id !== existing.id);
+      await db.from('food_plan').delete().eq('id', existing.id);
+    } else if (existing.meal !== trimmed) {
+      existing.meal = trimmed;
+      await db.from('food_plan').update({ meal: trimmed }).eq('id', existing.id);
+    }
+  } else if (trimmed) {
+    const tempId = 'temp-' + Date.now();
+    foodItems.push({ id: tempId, day, meal: trimmed });
+    const { data } = await db.from('food_plan').insert([{ day, meal: trimmed }]).select();
+    if (data && data.length > 0) {
+      const idx = foodItems.findIndex(f => f.id === tempId);
+      if (idx !== -1) foodItems[idx] = data[0];
+    }
+  }
+  updateWidgetInGrid('food');
+}
+
+// ════════════════════════════════════════════════════════════════
 // UTILS
 // ════════════════════════════════════════════════════════════════
 let toastTimer = null;
@@ -877,3 +974,5 @@ window.deleteShoppingItem = deleteShoppingItem;
 window.toggleTodoItem = toggleTodoItem;
 window.deleteTodoItem = deleteTodoItem;
 window.deleteNoteItem = deleteNoteItem;
+window.saveFoodPlan = saveFoodPlan;
+window.saveFoodPlan = saveFoodPlan;
