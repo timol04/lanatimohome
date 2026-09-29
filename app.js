@@ -495,21 +495,23 @@ function initSwipeNavigation() {
   let startX = 0, currentTranslate = 0, prevTranslate = 0, isDragging = false, animationID;
   const pagesCount = Math.ceil(WIDGETS.length / 8);
 
-  container.addEventListener('touchstart', e => {
+  const startDrag = (x) => {
     if (window.innerWidth < 768) return;
-    startX = e.touches[0].clientX; isDragging = true;
+    startX = x; isDragging = true;
     animationID = requestAnimationFrame(animation);
     track.style.transition = 'none';
-  });
+    container.style.cursor = 'grabbing';
+  };
 
-  container.addEventListener('touchmove', e => {
+  const moveDrag = (x) => {
     if (window.innerWidth < 768 || !isDragging) return;
-    currentTranslate = prevTranslate + (e.touches[0].clientX - startX);
-  });
+    currentTranslate = prevTranslate + (x - startX);
+  };
 
-  container.addEventListener('touchend', () => {
-    if (window.innerWidth < 768) return;
+  const endDrag = () => {
+    if (window.innerWidth < 768 || !isDragging) return;
     isDragging = false; cancelAnimationFrame(animationID);
+    container.style.cursor = 'grab';
     const movedBy = currentTranslate - prevTranslate;
     track.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
     if (movedBy < -50 && currentCarouselPage < pagesCount - 1) currentCarouselPage += 1;
@@ -519,7 +521,19 @@ function initSwipeNavigation() {
     prevTranslate = currentTranslate;
     track.style.transform = `translateX(${currentTranslate}px)`;
     Array.from(indicators).forEach((dot, index) => dot.classList.toggle('active', index === currentCarouselPage));
-  });
+  };
+
+  // Touch Events
+  container.addEventListener('touchstart', e => startDrag(e.touches[0].clientX));
+  container.addEventListener('touchmove', e => moveDrag(e.touches[0].clientX));
+  container.addEventListener('touchend', endDrag);
+
+  // Mouse Events
+  container.style.cursor = 'grab';
+  container.addEventListener('mousedown', e => startDrag(e.clientX));
+  container.addEventListener('mousemove', e => moveDrag(e.clientX));
+  container.addEventListener('mouseup', endDrag);
+  container.addEventListener('mouseleave', endDrag);
 
   function animation() {
     track.style.transform = `translateX(${currentTranslate}px)`;
