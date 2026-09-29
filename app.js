@@ -518,19 +518,18 @@ function initSwipeNavigation() {
   const pagesCount = Math.ceil(WIDGETS.length / 8);
 
   const startDrag = (x) => {
-    if (window.innerWidth < 768) return;
     startX = x; isDragging = true;
     animationID = requestAnimationFrame(animation);
     track.style.transition = 'none';
   };
 
   const moveDrag = (x) => {
-    if (window.innerWidth < 768 || !isDragging) return;
+    if (!isDragging) return;
     currentTranslate = prevTranslate + (x - startX);
   };
 
   const endDrag = () => {
-    if (window.innerWidth < 768 || !isDragging) return;
+    if (!isDragging) return;
     isDragging = false; cancelAnimationFrame(animationID);
     const movedBy = currentTranslate - prevTranslate;
     track.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
@@ -551,8 +550,6 @@ function initSwipeNavigation() {
   // Trackpad / Wheel Events (2-Finger Swipe)
   let wheelTimeout = null;
   container.addEventListener('wheel', e => {
-    if (window.innerWidth < 768) return;
-    // Wenn horizontales Scrollen stärker ist als vertikales
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
       e.preventDefault();
       if (wheelTimeout) return; // Debounce
