@@ -17,10 +17,12 @@ let todosItems = [];
 let notesItems = [];
 let foodItems = [];
 let choresItems = [];
+let countdownsItems = [];
 let currentCarouselPage = 0;
 let clockInterval = null;
 let foodChan = null;
 let choresChan = null;
+let countdownsChan = null;
 let currentWeatherData = { temp: '--', icon: 'cloud-sun', desc: 'Laden...', high: '--', low: '--', daily: [] };
 
 // ── Widget-Konfiguration ──────────────────────────────────────
@@ -69,9 +71,23 @@ const WIDGETS = [
     getPreview: () => currentWeatherData.desc
   },
   { 
-    id: 'trash', title: 'Abfall', icon: 'trash-2', color: 'var(--c-trash)', action: () => openPlaceholderOverlay('Abfallkalender', 'var(--c-trash)', 'trash-2'),
-    renderContent: () => `<div class="mini-placeholder"><i data-lucide="calendar-days"></i>Kein Kalender</div>`,
-    getPreview: () => 'In Entwicklung'
+    id: 'countdown', title: 'Countdowns', icon: 'timer', color: 'var(--c-countdown)', action: openCountdowns,
+    renderContent: () => {
+      if(countdownsItems.length === 0) return `<div class="mini-placeholder"><i data-lucide="calendar-heart"></i>Keine Events</div>`;
+      const next = [...countdownsItems].sort((a,b) => new Date(a.date) - new Date(b.date))[0];
+      const today = new Date(); today.setHours(0,0,0,0);
+      const target = new Date(next.date); target.setHours(0,0,0,0);
+      const days = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+      return `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+          <div style="font-size:2rem; font-weight:700; color:var(--c-countdown); line-height:1; margin-bottom:4px;">${days}</div>
+          <div style="font-size:0.8rem; color:var(--text-muted); text-align:center;">Tage bis<br/>${escapeHtml(next.title)}</div>
+        </div>
+      `;
+    },
+    getPreview: () => {
+      return countdownsItems.length > 0 ? `${countdownsItems.length} Events` : 'Leer';
+    }
   },
   { 
     id: 'notes', title: 'Notizen', icon: 'sticky-note', color: 'var(--c-notes)', action: openNotes,
@@ -121,6 +137,11 @@ const WIDGETS = [
       const c = choresItems.filter(i => !i.is_done).length;
       return c === 0 ? 'Alles sauber' : `${c} offene Ämtli`;
     }
+  },
+  { 
+    id: 'trash', title: 'Abfall', icon: 'trash-2', color: 'var(--c-trash)', action: () => openPlaceholderOverlay('Abfallkalender', 'var(--c-trash)', 'trash-2'),
+    renderContent: () => `<div class="mini-placeholder"><i data-lucide="calendar-days"></i>Kein Kalender</div>`,
+    getPreview: () => 'In Entwicklung'
   }
 ];
 
@@ -265,6 +286,7 @@ function showDashboard() {
   loadNotesData();
   loadFoodData();
   loadChoresData();
+  loadCountdownsData();
   
   loadTramDepartures();
   // Jede Minute die Trams aktualisieren
@@ -1133,6 +1155,112 @@ async function deleteChore(id) {
   await db.from('chores').delete().eq('id', id);
 }
 
+// ════════════════════════════════════════════════════════════════
+// COUNTDOWNS
+// ════════════════════════════════════════════════════════════════
+async function loadCountdownsData() {
+  const { data, error } = await db.from('countdowns').select('*').order('date', { ascending: true });
+  if (!error && data) {
+    countdownsItems = data;
+    updateWidgetInGrid('countdown');
+  }
+  if (!countdownsChan) {
+    countdownsChan = db.channel('countdowns_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'countdowns' }, payload => {
+      if (payload.eventType === 'INSERT' && !countdownsItems.find(i => i.id === payload.new.id)) countdownsItems.push(payload.new);
+      if (payload.eventType === 'UPDATE') countdownsItems = countdownsItems.map(i => i.id === payload.new.id ? payload.new : i);
+      if (payload.eventType === 'DELETE') countdownsItems = countdownsItems.filter(i => i.id !== payload.old.id);
+      updateWidgetInGrid('countdown');
+      renderCountdownsList();
+    }).subscribe();
+  }
+}
+
+function openCountdowns() {
+  openOverlay('Countdowns', 'var(--c-countdown)', () => `
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+      <input type="text" id="new-cd-title" class="input-modern" placeholder="Ereignis (z.B. Malediven 🌴)" />
+      <div style="display:flex; gap:8px;">
+        <input type="date" id="new-cd-date" class="input-modern" style="flex:1;" />
+        <button id="add-cd-btn" class="btn-primary" style="background:var(--c-countdown);"><i data-lucide="plus"></i></button>
+      </div>
+    </div>
+    <div id="countdowns-list"></div>
+  `, () => {
+    document.getElementById('add-cd-btn').addEventListener('click', addCountdown);
+    renderCountdownsList();
+  });
+}
+
+function renderCountdownsList() {
+  const list = document.getElementById('countdowns-list');
+  if (!list) return;
+  list.innerHTML = '';
+  
+  const sorted = [...countdownsItems].sort((a,b) => new Date(a.date) - new Date(b.date));
+  
+  if (sorted.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon" style="background:color-mix(in srgb, var(--c-countdown) 15%, transparent); color:var(--c-countdown);"><i data-lucide="timer"></i></div>
+        <h3>Keine Events</h3>
+        <p>Worauf freust du dich als Nächstes?</p>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  sorted.forEach(item => {
+    const target = new Date(item.date); target.setHours(0,0,0,0);
+    const days = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+    
+    const el = document.createElement('div');
+    el.className = `list-item`;
+    el.style.alignItems = 'center';
+    el.innerHTML = `
+      <div style="background:color-mix(in srgb, var(--c-countdown) 15%, transparent); color:var(--c-countdown); border-radius:8px; padding:4px 12px; font-weight:bold; font-size:1.2rem; min-width:40px; text-align:center;">
+        ${days}
+      </div>
+      <div class="item-text" style="display:flex; flex-direction:column; justify-content:center;">
+        <div style="font-weight:600;">${escapeHtml(item.title)}</div>
+        <div style="font-size:0.75rem; color:var(--text-muted);">${target.toLocaleDateString('de-CH')}</div>
+      </div>
+      <button class="item-delete" onclick="deleteCountdown('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+    `;
+    list.appendChild(el);
+  });
+  lucide.createIcons();
+}
+
+async function addCountdown() {
+  const title = document.getElementById('new-cd-title').value.trim();
+  const dateStr = document.getElementById('new-cd-date').value;
+  if (!title || !dateStr) {
+    showToast('Bitte Titel und Datum angeben');
+    return;
+  }
+  
+  document.getElementById('new-cd-title').value = '';
+  document.getElementById('new-cd-date').value = '';
+  
+  const tempId = 'temp-' + Date.now();
+  countdownsItems.push({ id: tempId, title, date: dateStr, created_at: new Date().toISOString() });
+  updateWidgetInGrid('countdown');
+  renderCountdownsList();
+
+  const { error } = await db.from('countdowns').insert([{ title, date: dateStr }]);
+  if (error) showToast('Fehler beim Speichern');
+  else loadCountdownsData();
+}
+
+async function deleteCountdown(id) {
+  countdownsItems = countdownsItems.filter(i => i.id !== id);
+  updateWidgetInGrid('countdown');
+  renderCountdownsList();
+  await db.from('countdowns').delete().eq('id', id);
+}
+
 
 // ════════════════════════════════════════════════════════════════
 // UTILS
@@ -1177,3 +1305,5 @@ window.saveFoodPlanAndReload = saveFoodPlanAndReload;
 window.addChore = addChore;
 window.toggleChore = toggleChore;
 window.deleteChore = deleteChore;
+window.addCountdown = addCountdown;
+window.deleteCountdown = deleteCountdown;

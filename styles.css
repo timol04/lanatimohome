@@ -32,6 +32,7 @@
   --c-food:       #FF7F50; /* Sanfteres Korall statt grellem Rot */
   --c-home:       #64d2ff;
   --c-chores:     #ff2d55; /* Ämtli-Plan / Putzplan */
+  --c-countdown:  #ff9500; /* Countdowns */
   --accent:       var(--c-todo); /* Global fallback */
   
   /* Consistent Radii */
