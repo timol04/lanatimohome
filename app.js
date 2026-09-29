@@ -1089,28 +1089,47 @@ async function loadChoresData() {
 
 function openChores() {
   openOverlay('Ämtli-Plan', 'var(--c-chores)', () => `
-    <div class="input-row">
-      <input type="text" id="new-chore-input" placeholder="Was muss geputzt/erledigt werden?" />
-      <select id="new-chore-assignee" style="width:90px; flex:none;">
-        <option value="">Wer?</option>
-        <option value="Timo">Timo</option>
-        <option value="Lana">Lana</option>
-      </select>
-      <input type="date" id="new-chore-date" style="flex:none; width:auto; padding-right:12px;" />
-      <button id="add-chore-btn" class="btn-compact"><i data-lucide="plus"></i></button>
+    <div style="display:flex; flex-direction:column; gap:0;">
+      <div class="input-row" style="margin-bottom:8px;">
+        <input type="text" id="new-chore-input" placeholder="Was muss geputzt/erledigt werden?" />
+        <button id="add-chore-btn" class="btn-compact"><i data-lucide="plus"></i></button>
+      </div>
+      <div class="input-row">
+        <select id="new-chore-assignee" style="flex:1;">
+          <option value="">Wer?</option>
+          <option value="Timo">Timo</option>
+          <option value="Lana">Lana</option>
+        </select>
+        <select id="new-chore-recurrence" style="flex:1;">
+          <option value="">Einmalig</option>
+          <option value="Täglich">Täglich</option>
+          <option value="Wöchentlich">Wöchentlich</option>
+          <option value="Monatlich">Monatlich</option>
+        </select>
+        <input type="date" id="new-chore-date" style="flex:1; padding-right:12px;" />
+      </div>
+    </div>
+    <div class="list-toolbar">
+      <span>Ämtli</span>
+      <button id="clear-done-chore-btn" class="btn-text" style="display:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen</button>
     </div>
     <div id="chores-list"></div>
   `, () => {
     document.getElementById('add-chore-btn').addEventListener('click', addChore);
     document.getElementById('new-chore-input').addEventListener('keydown', e => { if (e.key === 'Enter') addChore(); });
+    document.getElementById('clear-done-chore-btn').addEventListener('click', clearDoneChores);
     renderChoresList();
   });
 }
 
 function renderChoresList() {
   const list = document.getElementById('chores-list');
+  const clearBtn = document.getElementById('clear-done-chore-btn');
   if (!list) return;
   list.innerHTML = '';
+  
+  const doneCount = choresItems.filter(i => i.is_done).length;
+  if (clearBtn) clearBtn.style.display = doneCount > 0 ? 'flex' : 'none';
   
   const sorted = [...choresItems.filter(i => !i.is_done), ...choresItems.filter(i => i.is_done)];
   if (sorted.length === 0) {
@@ -1140,19 +1159,23 @@ function renderChoresList() {
 async function addChore() {
   const input = document.getElementById('new-chore-input');
   const assigneeSelect = document.getElementById('new-chore-assignee');
+  const recurrenceSelect = document.getElementById('new-chore-recurrence');
   const dateInput = document.getElementById('new-chore-date');
   
   const text = input.value.trim();
   const assignee = assigneeSelect.value;
+  const recurrence = recurrenceSelect.value;
   const dateVal = dateInput.value;
   if (!text) return;
   
   input.value = '';
   assigneeSelect.value = '';
+  recurrenceSelect.value = '';
   dateInput.value = '';
   
   let finalText = text;
   if (assignee) finalText += ` (${assignee})`;
+  if (recurrence) finalText += ` [${recurrence}]`;
   if (dateVal) {
      const dateObj = new Date(dateVal);
      const dateStr = dateObj.toLocaleDateString('de-CH', {day: '2-digit', month: '2-digit'});
@@ -1176,6 +1199,35 @@ async function toggleChore(id) {
   updateWidgetInGrid('chores');
   renderChoresList();
   await db.from('chores').update({ is_done: item.is_done }).eq('id', id);
+}
+
+async function clearDoneChores() {
+  const doneItems = choresItems.filter(i => i.is_done);
+  const toDelete = [];
+  const toReset = [];
+  
+  doneItems.forEach(item => {
+    // Wenn es ein Intervall im Text hat, setzen wir es nur zurück
+    if (item.text.includes('[Täglich]') || item.text.includes('[Wöchentlich]') || item.text.includes('[Monatlich]')) {
+      toReset.push(item);
+    } else {
+      toDelete.push(item.id);
+    }
+  });
+
+  // UI sofort updaten
+  choresItems = choresItems.filter(i => !toDelete.includes(i.id));
+  toReset.forEach(item => item.is_done = false);
+  updateWidgetInGrid('chores');
+  renderChoresList();
+
+  // DB Sync
+  if (toDelete.length > 0) {
+    await db.from('chores').delete().in('id', toDelete);
+  }
+  for (const item of toReset) {
+    await db.from('chores').update({ is_done: false }).eq('id', item.id);
+  }
 }
 
 async function deleteChore(id) {
