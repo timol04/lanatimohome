@@ -17,7 +17,7 @@ let todosItems = [];
 let notesItems = [];
 let currentCarouselPage = 0;
 let clockInterval = null;
-let currentWeatherData = { temp: '--', icon: 'cloud-sun', desc: 'Laden...' };
+let currentWeatherData = { temp: '--', icon: 'cloud-sun', desc: 'Laden...', high: '--', low: '--', daily: [] };
 
 // ── Widget-Konfiguration ──────────────────────────────────────
 const WIDGETS = [
@@ -51,8 +51,17 @@ const WIDGETS = [
     getPreview: () => 'In Entwicklung'
   },
   { 
-    id: 'weather', title: 'Wetter', icon: 'cloud-sun', color: 'var(--c-weather)', action: () => openPlaceholderOverlay('Wetter', 'var(--c-weather)', currentWeatherData.icon),
-    renderContent: () => `<div class="mini-weather-hero"><i data-lucide="${currentWeatherData.icon}"></i> ${currentWeatherData.temp}°</div>`,
+    id: 'weather', title: 'Wetter', icon: 'cloud-sun', color: 'var(--c-weather)', action: openWeather,
+    renderContent: () => `
+      <div class="mini-weather-hero" style="flex-direction:column; align-items:flex-start; gap:4px;">
+        <div style="display:flex; align-items:center; gap:8px; font-size:2.4rem; font-weight:300; color:var(--text);">
+          <i data-lucide="${currentWeatherData.icon}" style="width:36px;height:36px;color:var(--c-weather);"></i> ${currentWeatherData.temp}°
+        </div>
+        <div style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">
+          H: ${currentWeatherData.high}° &nbsp;&middot;&nbsp; T: ${currentWeatherData.low}°
+        </div>
+      </div>
+    `,
     getPreview: () => currentWeatherData.desc
   },
   { 
@@ -290,32 +299,43 @@ async function loadTramDepartures() {
 // ════════════════════════════════════════════════════════════════
 // WEATHER (Open-Meteo API)
 // ════════════════════════════════════════════════════════════════
+function getWeatherIconAndDesc(code, isDay = true) {
+  let icon = 'cloud'; let desc = 'Bewölkt';
+  if (code === 0) { icon = isDay ? 'sun' : 'moon'; desc = 'Klar'; }
+  else if (code === 1 || code === 2) { icon = isDay ? 'cloud-sun' : 'cloud-moon'; desc = 'Leicht bewölkt'; }
+  else if (code === 3) { icon = 'cloud'; desc = 'Bedeckt'; }
+  else if (code === 45 || code === 48) { icon = 'cloud-fog'; desc = 'Nebel'; }
+  else if (code >= 51 && code <= 67) { icon = 'cloud-rain'; desc = 'Regen'; }
+  else if (code >= 71 && code <= 77) { icon = 'cloud-snow'; desc = 'Schnee'; }
+  else if (code >= 80 && code <= 82) { icon = 'cloud-rain'; desc = 'Schauer'; }
+  else if (code >= 85 && code <= 86) { icon = 'cloud-snow'; desc = 'Schneeschauer'; }
+  else if (code >= 95) { icon = 'cloud-lightning'; desc = 'Gewitter'; }
+  return { icon, desc };
+}
+
 async function loadWeather() {
   try {
-    // Koordinaten von Allschwil (47.55, 7.53)
-    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=47.55&longitude=7.53&current_weather=true');
+    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=47.55&longitude=7.53&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FZurich');
     const data = await res.json();
-    if (data && data.current_weather) {
+    
+    if (data && data.current_weather && data.daily) {
       const cw = data.current_weather;
       currentWeatherData.temp = Math.round(cw.temperature);
+      currentWeatherData.high = Math.round(data.daily.temperature_2m_max[0]);
+      currentWeatherData.low = Math.round(data.daily.temperature_2m_min[0]);
       
       const isDay = cw.is_day === 1;
-      const code = cw.weathercode;
-      let icon = 'cloud';
-      let desc = 'Bewölkt';
-
-      if (code === 0) { icon = isDay ? 'sun' : 'moon'; desc = 'Klar'; }
-      else if (code === 1 || code === 2) { icon = isDay ? 'cloud-sun' : 'cloud-moon'; desc = 'Leicht bewölkt'; }
-      else if (code === 3) { icon = 'cloud'; desc = 'Bedeckt'; }
-      else if (code === 45 || code === 48) { icon = 'cloud-fog'; desc = 'Nebel'; }
-      else if (code >= 51 && code <= 67) { icon = 'cloud-rain'; desc = 'Regen'; }
-      else if (code >= 71 && code <= 77) { icon = 'cloud-snow'; desc = 'Schnee'; }
-      else if (code >= 80 && code <= 82) { icon = 'cloud-rain'; desc = 'Schauer'; }
-      else if (code >= 85 && code <= 86) { icon = 'cloud-snow'; desc = 'Schneeschauer'; }
-      else if (code >= 95) { icon = 'cloud-lightning'; desc = 'Gewitter'; }
-
+      const { icon, desc } = getWeatherIconAndDesc(cw.weathercode, isDay);
       currentWeatherData.icon = icon;
       currentWeatherData.desc = desc;
+
+      currentWeatherData.daily = data.daily.time.map((t, i) => ({
+        date: new Date(t),
+        max: Math.round(data.daily.temperature_2m_max[i]),
+        min: Math.round(data.daily.temperature_2m_min[i]),
+        rain: data.daily.precipitation_probability_max[i],
+        code: data.daily.weathercode[i]
+      }));
 
       // Update Header
       const hw = document.getElementById('header-weather');
@@ -326,10 +346,52 @@ async function loadWeather() {
 
       // Update Widget
       updateWidgetInGrid('weather');
+      if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('weather-list')) {
+        openWeather();
+      }
     }
   } catch(e) {
     console.error('Weather API Error', e);
   }
+}
+
+function openWeather() {
+  openOverlay('7-Tage Wetter', 'var(--c-weather)', () => {
+    if (!currentWeatherData.daily || currentWeatherData.daily.length === 0) {
+      return `<div class="empty-state">
+                <div class="empty-icon"><i data-lucide="cloud-sun"></i></div>
+                <h3>Lade Wetterdaten...</h3>
+              </div>`;
+    }
+    
+    let html = `<div id="weather-list" style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">`;
+    
+    currentWeatherData.daily.slice(0, 7).forEach((day, index) => {
+      const isToday = index === 0;
+      const dayName = isToday ? 'Heute' : day.date.toLocaleDateString('de-CH', { weekday: 'short' });
+      const { icon } = getWeatherIconAndDesc(day.code, true);
+      
+      // Regen-Wahrscheinlichkeit nur anzeigen wenn > 10%
+      const rainInfo = day.rain > 10 
+        ? `<div style="color:#64d2ff; font-size:0.75rem; font-weight:600; display:flex; align-items:center; gap:4px; width:45px;"><i data-lucide="droplets" style="width:12px;height:12px;"></i> ${day.rain}%</div>` 
+        : `<div style="width:45px;"></div>`;
+
+      html += `
+        <div class="list-item" style="padding:16px;">
+          <span style="font-weight:600; width:60px; color:var(--text);">${dayName}</span>
+          <i data-lucide="${icon}" style="width:24px;height:24px;color:var(--c-weather);"></i>
+          ${rainInfo}
+          <div style="display:flex; gap:16px; flex:1; justify-content:flex-end; font-size:1rem;">
+            <span style="color:var(--text-muted);">${day.min}°</span>
+            <span style="color:var(--text); font-weight:600;">${day.max}°</span>
+          </div>
+        </div>
+      `;
+    });
+    
+    html += `</div>`;
+    return html;
+  });
 }
 
 function renderWidgetGrid() {
