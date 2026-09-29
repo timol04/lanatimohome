@@ -175,7 +175,15 @@ html, body {
   .widget { padding: var(--space-md); }
   
   /* Auf Mobile nur Icon, Titel und Status-Preview anzeigen (Listen ausblenden) */
-  .widget-content { display: none !important; }
+  .widget-content,
+  .widget-content * {
+    display: none !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 }
 
 /* ── Carousel / Grid ─────────────────────────────────────────── */
