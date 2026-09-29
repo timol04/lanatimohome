@@ -941,16 +941,21 @@ async function saveFoodPlan(day, meal) {
   if (existing) {
     if (!trimmed) {
       foodItems = foodItems.filter(f => f.id !== existing.id);
-      await db.from('food_plan').delete().eq('id', existing.id);
+      const { error } = await db.from('food_plan').delete().eq('id', existing.id);
+      if (error) showToast('Fehler beim Löschen: ' + error.message);
     } else if (existing.meal !== trimmed) {
       existing.meal = trimmed;
-      await db.from('food_plan').update({ meal: trimmed }).eq('id', existing.id);
+      const { error } = await db.from('food_plan').update({ meal: trimmed }).eq('id', existing.id);
+      if (error) showToast('Fehler beim Speichern: ' + error.message);
     }
   } else if (trimmed) {
     const tempId = 'temp-' + Date.now();
     foodItems.push({ id: tempId, day, meal: trimmed });
-    const { data } = await db.from('food_plan').insert([{ day, meal: trimmed }]).select();
-    if (data && data.length > 0) {
+    const { data, error } = await db.from('food_plan').insert([{ day, meal: trimmed }]).select();
+    if (error) {
+      showToast('Fehler beim Einfügen: ' + error.message);
+      foodItems = foodItems.filter(f => f.id !== tempId); // Revert
+    } else if (data && data.length > 0) {
       const idx = foodItems.findIndex(f => f.id === tempId);
       if (idx !== -1) foodItems[idx] = data[0];
     }
