@@ -138,7 +138,7 @@ html, body {
 
 /* ── Header ──────────────────────────────────────────────────── */
 #homescreen-header {
-  padding: 48px var(--space-lg) var(--space-md) var(--space-lg);
+  padding: calc(48px + env(safe-area-inset-top, 0px)) var(--space-lg) var(--space-md) var(--space-lg);
   display: flex; justify-content: space-between; align-items: flex-start;
 }
 .header-left { display: flex; flex-direction: column; gap: 4px; }
@@ -154,7 +154,7 @@ html, body {
 @media (max-width: 767px) {
   #homescreen-header {
     flex-direction: column;
-    padding: 32px var(--space-md) var(--space-md) var(--space-md);
+    padding: calc(32px + env(safe-area-inset-top, 40px)) var(--space-md) var(--space-md) var(--space-md);
     gap: 20px;
   }
   .header-time { font-size: 3.5rem; }
@@ -226,14 +226,6 @@ html, body {
 .widget-footer { margin-top: auto; }
 .widget-title { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
 .widget-preview { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* Hide Previews on Mobile for app-like grid */
-@media (max-width: 767px) {
-  .widget { aspect-ratio: 1 / 1; padding: var(--space-md); }
-  .widget-content { display: none !important; }
-  .widget-preview { display: none !important; }
-  .widget-title { font-size: 0.95rem; margin-bottom: 0; }
-}
 
 .mini-list-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mini-list-item svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--w-color); stroke-width: 2px; }
