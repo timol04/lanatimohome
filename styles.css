@@ -29,7 +29,7 @@
   --c-weather:    #ffd60a;
   --c-trash:      #ff453a;
   --c-notes:      #bf5af2;
-  --c-food:       #ff375f;
+  --c-food:       #FF7F50; /* Sanfteres Korall statt grellem Rot */
   --c-home:       #64d2ff;
   --accent:       var(--c-todo); /* Global fallback */
   
