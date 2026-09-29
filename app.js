@@ -212,6 +212,9 @@ function showDashboard() {
         <div class="header-weather" id="header-weather">
           <i data-lucide="cloud-sun"></i> --°C
         </div>
+        <button onclick="window.location.reload(true)" style="margin-top:16px; background:var(--bg-card); border:1px solid var(--border); color:var(--text-muted); border-radius:var(--radius-sm); padding:6px 12px; display:flex; align-items:center; gap:8px; font-size:0.8rem; font-weight:600; cursor:pointer;">
+          <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Sync / Reload
+        </button>
       </div>
       <div class="header-right" id="tram-board" style="display:flex; flex-direction:column; gap:8px; margin-top:0;">
         <div class="sbb-title" style="font-size:1.1rem; color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; justify-content:flex-end;">
