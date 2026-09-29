@@ -261,7 +261,8 @@ html, body {
 }
 #overlay-container.open { transform: translateY(0); }
 .overlay-header {
-  display: flex; align-items: center; padding: var(--space-lg);
+  display: flex; align-items: center; 
+  padding: calc(var(--space-lg) + env(safe-area-inset-top, 0px)) var(--space-lg) var(--space-lg) var(--space-lg);
   background: var(--bg); /* Fließender Übergang */
 }
 .overlay-back {
