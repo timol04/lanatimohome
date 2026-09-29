@@ -17,6 +17,7 @@ let todosItems = [];
 let notesItems = [];
 let currentCarouselPage = 0;
 let clockInterval = null;
+let currentWeatherData = { temp: '--', icon: 'cloud-sun', desc: 'Laden...' };
 
 // ── Widget-Konfiguration ──────────────────────────────────────
 const WIDGETS = [
@@ -50,9 +51,9 @@ const WIDGETS = [
     getPreview: () => 'In Entwicklung'
   },
   { 
-    id: 'weather', title: 'Wetter', icon: 'cloud-sun', color: 'var(--c-weather)', action: () => openPlaceholderOverlay('Wetter', 'var(--c-weather)', 'cloud-sun'),
-    renderContent: () => `<div class="mini-placeholder"><i data-lucide="sun-snow"></i>Keine Daten</div>`,
-    getPreview: () => 'In Entwicklung'
+    id: 'weather', title: 'Wetter', icon: 'cloud-sun', color: 'var(--c-weather)', action: () => openPlaceholderOverlay('Wetter', 'var(--c-weather)', currentWeatherData.icon),
+    renderContent: () => `<div class="mini-weather-hero"><i data-lucide="${currentWeatherData.icon}"></i> ${currentWeatherData.temp}°</div>`,
+    getPreview: () => currentWeatherData.desc
   },
   { 
     id: 'trash', title: 'Abfall', icon: 'trash-2', color: 'var(--c-trash)', action: () => openPlaceholderOverlay('Abfallkalender', 'var(--c-trash)', 'trash-2'),
@@ -178,8 +179,8 @@ function showDashboard() {
       <div class="header-left">
         <div class="header-time" id="clock-time">--:--</div>
         <div class="header-date" id="clock-date">Laden...</div>
-        <div class="header-weather">
-          <i data-lucide="cloud-sun"></i> 18°C
+        <div class="header-weather" id="header-weather">
+          <i data-lucide="cloud-sun"></i> --°C
         </div>
       </div>
       <div class="header-right" id="tram-board" style="display:flex; flex-direction:column; gap:8px; margin-top:0;">
@@ -217,6 +218,10 @@ function showDashboard() {
   loadTramDepartures();
   // Jede Minute die Trams aktualisieren
   setInterval(loadTramDepartures, 60000);
+
+  loadWeather();
+  // Wetter alle 30 Minuten aktualisieren
+  setInterval(loadWeather, 30 * 60000);
 
   lucide.createIcons();
 }
@@ -279,6 +284,51 @@ async function loadTramDepartures() {
     }
   } catch(e) {
     console.error('SBB API Error', e);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// WEATHER (Open-Meteo API)
+// ════════════════════════════════════════════════════════════════
+async function loadWeather() {
+  try {
+    // Koordinaten von Allschwil (47.55, 7.53)
+    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=47.55&longitude=7.53&current_weather=true');
+    const data = await res.json();
+    if (data && data.current_weather) {
+      const cw = data.current_weather;
+      currentWeatherData.temp = Math.round(cw.temperature);
+      
+      const isDay = cw.is_day === 1;
+      const code = cw.weathercode;
+      let icon = 'cloud';
+      let desc = 'Bewölkt';
+
+      if (code === 0) { icon = isDay ? 'sun' : 'moon'; desc = 'Klar'; }
+      else if (code === 1 || code === 2) { icon = isDay ? 'cloud-sun' : 'cloud-moon'; desc = 'Leicht bewölkt'; }
+      else if (code === 3) { icon = 'cloud'; desc = 'Bedeckt'; }
+      else if (code === 45 || code === 48) { icon = 'cloud-fog'; desc = 'Nebel'; }
+      else if (code >= 51 && code <= 67) { icon = 'cloud-rain'; desc = 'Regen'; }
+      else if (code >= 71 && code <= 77) { icon = 'cloud-snow'; desc = 'Schnee'; }
+      else if (code >= 80 && code <= 82) { icon = 'cloud-rain'; desc = 'Schauer'; }
+      else if (code >= 85 && code <= 86) { icon = 'cloud-snow'; desc = 'Schneeschauer'; }
+      else if (code >= 95) { icon = 'cloud-lightning'; desc = 'Gewitter'; }
+
+      currentWeatherData.icon = icon;
+      currentWeatherData.desc = desc;
+
+      // Update Header
+      const hw = document.getElementById('header-weather');
+      if (hw) {
+        hw.innerHTML = `<i data-lucide="${icon}"></i> ${currentWeatherData.temp}°C`;
+        lucide.createIcons();
+      }
+
+      // Update Widget
+      updateWidgetInGrid('weather');
+    }
+  } catch(e) {
+    console.error('Weather API Error', e);
   }
 }
 
