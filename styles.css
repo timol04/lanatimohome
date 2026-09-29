@@ -186,8 +186,8 @@ html, body {
 .widget {
   background: linear-gradient(180deg, var(--bg-surface-top) 0%, var(--bg-surface-bot) 100%);
   border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  aspect-ratio: 1.25 / 1;
+  padding: var(--space-md); /* Mehr Platz für Content */
+  aspect-ratio: 1.1 / 1; /* Etwas quadratischer für mehr Höhe */
   display: flex;
   flex-direction: column;
   cursor: pointer;
@@ -218,7 +218,8 @@ html, body {
 
 .widget-content {
   flex: 1; overflow: hidden;
-  display: flex; flex-direction: column; justify-content: center;
+  display: flex; flex-direction: column; justify-content: flex-start;
+  margin-top: 4px; margin-bottom: 4px;
   font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;
 }
 
