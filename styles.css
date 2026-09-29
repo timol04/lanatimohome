@@ -117,8 +117,9 @@ html, body {
 /* ── Header ──────────────────────────────────────────────────── */
 #homescreen-header {
   padding: 48px var(--space-lg) var(--space-xl) var(--space-lg);
-  display: flex; flex-direction: column; gap: 4px;
+  display: flex; justify-content: space-between; align-items: flex-start;
 }
+.header-left { display: flex; flex-direction: column; gap: 4px; }
 .header-time { font-size: 4.5rem; font-weight: 300; line-height: 1; letter-spacing: -0.04em; color: var(--text); }
 .header-date { font-size: 1rem; font-weight: 500; color: var(--text-muted); }
 .header-weather {

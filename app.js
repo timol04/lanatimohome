@@ -179,7 +179,7 @@ function showLoginScreen() {
 // ════════════════════════════════════════════════════════════════
 function showDashboard() {
   document.getElementById('app').innerHTML = `
-    <div id="homescreen-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+    <div id="homescreen-header">
       <div class="header-left">
         <div class="header-time" id="clock-time">--:--</div>
         <div class="header-date" id="clock-date">Laden...</div>
@@ -272,7 +272,7 @@ async function loadTramDepartures() {
         html += `
           <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px; font-size:0.9rem;">
             <span style="background:var(--bg-card-bot); border:1px solid var(--border); color:var(--text); padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600;">${line}</span>
-            <span style="color:var(--text); width:90px; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${dest}</span>
+            <span style="color:var(--text); max-width:130px; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${dest}</span>
             <span style="color:var(--c-home); font-weight:600; width:45px; text-align:right;">${timeDisplay}</span>
           </div>
         `;
