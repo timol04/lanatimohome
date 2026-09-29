@@ -188,8 +188,8 @@ function showDashboard() {
         </div>
       </div>
       <div class="header-right" id="tram-board" style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
-        <div style="font-size:0.85rem; color:var(--text-muted); font-weight:500; display:flex; align-items:center; gap:6px; justify-content:flex-end;">
-          <i data-lucide="tram" style="width:16px;height:16px;"></i> Allschwil, Dorf...
+        <div style="font-size:1rem; color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; justify-content:flex-end;">
+          <i data-lucide="tram" style="width:18px;height:18px;color:var(--c-todo);"></i> Abfahrten Allschwil Dorf...
         </div>
       </div>
     </div>
@@ -250,8 +250,8 @@ async function loadTramDepartures() {
     const res = await fetch('https://transport.opendata.ch/v1/stationboard?station=Allschwil,+Dorf&limit=3');
     const data = await res.json();
     if (data.stationboard && data.stationboard.length > 0) {
-      let html = `<div style="font-size:0.85rem; color:var(--text-muted); font-weight:500; display:flex; align-items:center; gap:6px; justify-content:flex-end; margin-bottom:4px;">
-                    <i data-lucide="tram" style="width:16px;height:16px;"></i> Allschwil, Dorf
+      let html = `<div style="font-size:1rem; color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; justify-content:flex-end; margin-bottom:6px;">
+                    <i data-lucide="tram" style="width:18px;height:18px;color:var(--c-todo);"></i> Abfahrten Allschwil Dorf
                   </div>`;
       
       data.stationboard.forEach(dep => {
