@@ -315,8 +315,8 @@ function closeOverlay() {
 
 function openPlaceholderOverlay(title) {
   openOverlay(title, () => `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted);text-align:center;">
-      <div style="margin-bottom:16px;"><i data-lucide="construction" style="width:64px;height:64px;opacity:0.5;"></i></div>
+    <div class="empty-state">
+      <i data-lucide="construction"></i>
       <p>Detailansicht für<br><b>${title}</b><br>kommt später.</p>
     </div>
   `);
@@ -358,13 +358,13 @@ function handleShoppingRealtime({ eventType, new: n, old: o }) {
 
 function openShopping() {
   openOverlay('Einkaufsliste', () => `
-    <div class="shopping-input-row">
+    <div class="input-row">
       <input type="text" id="new-item-input" placeholder="Neues Item..." autocomplete="off" />
-      <button id="add-item-btn" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;padding:0 12px;"><i data-lucide="plus"></i></button>
+      <button id="add-item-btn" class="btn-compact"><i data-lucide="plus"></i></button>
     </div>
-    <div class="shopping-toolbar">
-      <span style="font-weight:600">Artikel</span>
-      <button id="clear-done-btn" class="btn btn-danger" style="display:none;height:32px;padding:0 12px;font-size:0.8rem;align-items:center;gap:4px;">
+    <div class="list-toolbar">
+      <span>Artikel</span>
+      <button id="clear-done-btn" class="btn-text" style="display:none;">
         <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen
       </button>
     </div>
@@ -389,13 +389,18 @@ function renderShoppingList() {
   const sorted = [...shoppingItems.filter(i => !i.is_done), ...shoppingItems.filter(i => i.is_done)];
   
   if (sorted.length === 0) {
-    list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px;">Liste ist leer</div>`;
+    list.innerHTML = `
+      <div class="empty-state">
+        <i data-lucide="shopping-bag"></i>
+        <p>Die Liste ist leer.</p>
+      </div>`;
+    lucide.createIcons();
     return;
   }
 
   sorted.forEach(item => {
     const el = document.createElement('div');
-    el.className = `shopping-item ${item.is_done ? 'done' : ''}`;
+    el.className = `list-item ${item.is_done ? 'done' : ''}`;
     el.innerHTML = `
       <div class="item-check" onclick="toggleShoppingItem('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
       <div class="item-text">${escapeHtml(item.text)}</div>
@@ -479,13 +484,13 @@ function handleTodosRealtime({ eventType, new: n, old: o }) {
 
 function openTodos() {
   openOverlay('To-Do', () => `
-    <div class="shopping-input-row">
+    <div class="input-row">
       <input type="text" id="new-todo-input" placeholder="Neue Aufgabe..." autocomplete="off" />
-      <button id="add-todo-btn" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;padding:0 12px;"><i data-lucide="plus"></i></button>
+      <button id="add-todo-btn" class="btn-compact"><i data-lucide="plus"></i></button>
     </div>
-    <div class="shopping-toolbar">
-      <span style="font-weight:600">Aufgaben</span>
-      <button id="clear-done-todo-btn" class="btn btn-danger" style="display:none;height:32px;padding:0 12px;font-size:0.8rem;align-items:center;gap:4px;">
+    <div class="list-toolbar">
+      <span>Aufgaben</span>
+      <button id="clear-done-todo-btn" class="btn-text" style="display:none;">
         <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen
       </button>
     </div>
@@ -509,12 +514,17 @@ function renderTodoList() {
   list.innerHTML = '';
   const sorted = [...todosItems.filter(i => !i.is_done), ...todosItems.filter(i => i.is_done)];
   if (sorted.length === 0) {
-    list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px;">Alles erledigt!</div>`;
+    list.innerHTML = `
+      <div class="empty-state">
+        <i data-lucide="check-circle-2"></i>
+        <p>Alles erledigt! 🎉</p>
+      </div>`;
+    lucide.createIcons();
     return;
   }
   sorted.forEach(item => {
     const el = document.createElement('div');
-    el.className = `shopping-item ${item.is_done ? 'done' : ''}`;
+    el.className = `list-item ${item.is_done ? 'done' : ''}`;
     el.innerHTML = `
       <div class="item-check" onclick="toggleTodoItem('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
       <div class="item-text">${escapeHtml(item.text)}</div>
@@ -600,11 +610,11 @@ function handleNotesRealtime({ eventType, new: n, old: o }) {
 
 function openNotes() {
   openOverlay('Notizen', () => `
-    <div class="shopping-input-row" style="align-items: flex-start;">
-      <textarea id="new-note-input" placeholder="Neue Notiz..." rows="3" style="flex:1; background:var(--bg-input); border:none; border-radius:var(--radius-sm); color:var(--text); padding:12px 16px; font-size:1rem; resize:none; outline:none; font-family:inherit;"></textarea>
-      <button id="add-note-btn" class="btn btn-primary" style="height: auto; align-self: stretch; padding:0 16px;"><i data-lucide="send"></i></button>
+    <div class="input-row">
+      <textarea id="new-note-input" placeholder="Neue Notiz..." rows="2"></textarea>
+      <button id="add-note-btn" class="btn-compact" style="height: auto;"><i data-lucide="send"></i></button>
     </div>
-    <div id="notes-list" style="display:flex; flex-direction:column; gap:12px; margin-top:16px;"></div>
+    <div id="notes-list"></div>
   `, () => {
     document.getElementById('add-note-btn').addEventListener('click', addNoteItem);
     renderNotesList();
@@ -617,29 +627,28 @@ function renderNotesList() {
 
   list.innerHTML = '';
   if (notesItems.length === 0) {
-    list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px;">Noch keine Notizen.</div>`;
+    list.innerHTML = `
+      <div class="empty-state">
+        <i data-lucide="message-square"></i>
+        <p>Noch keine Notizen.</p>
+      </div>`;
+    lucide.createIcons();
     return;
   }
   notesItems.forEach(item => {
     const el = document.createElement('div');
+    el.className = 'note-card';
     const isMe = item.author === (currentUser?.email?.split('@')[0] ?? 'Unbekannt');
-    
-    el.style.cssText = `
-      background: var(--bg-card);
-      padding: 16px;
-      border-radius: var(--radius-md);
-      position: relative;
-    `;
     
     const date = new Date(item.created_at).toLocaleString('de-CH', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 
     el.innerHTML = `
-      <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.85rem; color:var(--text-muted);">
-        <strong style="color: ${isMe ? 'var(--accent)' : 'var(--text)'};">${escapeHtml(item.author)}</strong>
+      <div class="note-header">
+        <strong class="${isMe ? 'is-me' : ''}">${escapeHtml(item.author)}</strong>
         <span>${date}</span>
       </div>
-      <div style="white-space:pre-wrap; line-height:1.4;">${escapeHtml(item.text)}</div>
-      <button class="item-delete" style="position:absolute; top:12px; right:12px; opacity:0.5; padding:4px;" onclick="deleteNoteItem('${item.id}')">
+      <div class="note-body">${escapeHtml(item.text)}</div>
+      <button class="note-delete" onclick="deleteNoteItem('${item.id}')">
         <i data-lucide="x" style="width:16px;height:16px;"></i>
       </button>
     `;
