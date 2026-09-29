@@ -918,8 +918,9 @@ function openFoodPlan() {
             ${day} ${isToday ? '<span style="color:var(--c-food);font-size:0.8rem;">(Heute)</span>' : ''}
           </div>
           <div class="input-row" style="margin-bottom:0; display:flex; gap:8px;">
-            <input type="text" class="food-day-input" placeholder="Was gibt's?" value="${mealText}" onchange="saveFoodPlan('${day}', this.value)" style="flex:1; min-width:0; background:var(--bg-input); border:2px solid transparent; box-shadow:var(--shadow-inner); border-radius:var(--radius-sm); color:var(--text); padding:8px 12px; font-size:1rem; width:100%; -webkit-appearance:none; appearance:none;" />
-            ${mealText ? `<button class="btn-compact" onclick="addMealToShopping('${escapeHtml(mealText.replace(/'/g, "\\'"))}')" title="Zur Einkaufsliste hinzufügen" style="background:var(--bg-button); color:var(--text); border:none; border-radius:var(--radius-sm); width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i data-lucide="shopping-cart"></i></button>` : ''}
+            <input type="text" id="food-input-${day}" class="food-day-input" placeholder="Was gibt's?" value="${mealText}" onchange="saveFoodPlan('${day}', this.value)" style="flex:1; min-width:0; background:var(--bg-input); border:2px solid transparent; box-shadow:var(--shadow-inner); border-radius:var(--radius-sm); color:var(--text); padding:8px 12px; font-size:1rem; width:100%; -webkit-appearance:none; appearance:none;" />
+            <button class="btn-compact" onclick="saveFoodPlanAndReload('${day}', document.getElementById('food-input-${day}').value)" title="Speichern" style="background:var(--bg-button); color:var(--text); border:none; border-radius:var(--radius-sm); width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;"><i data-lucide="check"></i></button>
+            ${mealText ? `<button class="btn-compact" onclick="addMealToShopping('${escapeHtml(mealText.replace(/'/g, "\\'"))}')" title="Zur Einkaufsliste hinzufügen" style="background:var(--bg-button); color:var(--text); border:none; border-radius:var(--radius-sm); width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;"><i data-lucide="shopping-cart"></i></button>` : ''}
           </div>
         </div>
       `;
@@ -952,6 +953,11 @@ async function saveFoodPlan(day, meal) {
     }
   }
   updateWidgetInGrid('food');
+}
+
+async function saveFoodPlanAndReload(day, meal) {
+  await saveFoodPlan(day, meal);
+  openFoodPlan();
 }
 
 async function addMealToShopping(meal) {
@@ -1012,3 +1018,4 @@ window.deleteTodoItem = deleteTodoItem;
 window.deleteNoteItem = deleteNoteItem;
 window.saveFoodPlan = saveFoodPlan;
 window.addMealToShopping = addMealToShopping;
+window.saveFoodPlanAndReload = saveFoodPlanAndReload;
