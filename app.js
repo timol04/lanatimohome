@@ -193,8 +193,8 @@ function showDashboard() {
         </div>
       </div>
       <div class="header-right" id="tram-board" style="display:flex; flex-direction:column; gap:8px; margin-top:0;">
-        <div style="font-size:1.1rem; color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; justify-content:flex-end;">
-          <i data-lucide="train-front" style="width:20px;height:20px;color:var(--c-todo);"></i> Abfahrten Allschwil Dorf...
+        <div class="sbb-title" style="font-size:1.1rem; color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; justify-content:flex-end;">
+          <i data-lucide="train-front" style="width:20px;height:20px;color:var(--c-todo);"></i> Abfahrten...
         </div>
       </div>
     </div>
@@ -259,8 +259,8 @@ async function loadTramDepartures() {
     const res = await fetch('https://transport.opendata.ch/v1/stationboard?station=Allschwil,+Dorf&limit=3');
     const data = await res.json();
     if (data.stationboard && data.stationboard.length > 0) {
-      let html = `<div style="font-size:1.1rem; color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; justify-content:flex-end; margin-bottom:8px;">
-                    <i data-lucide="train-front" style="width:20px;height:20px;color:var(--c-todo);"></i> Abfahrten Allschwil Dorf
+      let html = `<div class="sbb-title" style="font-size:1.1rem; color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; justify-content:flex-end; margin-bottom:8px;">
+                    <i data-lucide="train-front" style="width:20px;height:20px;color:var(--c-todo);"></i> Abfahrten
                   </div>`;
       
       data.stationboard.forEach(dep => {
@@ -279,12 +279,12 @@ async function loadTramDepartures() {
         const line = dep.number;
         const dest = dep.to;
         html += `
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; font-size:1.05rem; width:100%; margin-bottom:4px;">
-            <div style="display:flex; align-items:center; gap:10px; flex:1;">
-              <span style="background:var(--bg-card-bot); border:1px solid var(--border); color:var(--text); padding:3px 8px; border-radius:6px; font-size:0.9rem; font-weight:600; min-width:32px; text-align:center;">${line}</span>
-              <span style="color:var(--text); max-width:145px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${dest}</span>
+          <div class="sbb-row" style="display:flex; align-items:center; justify-content:space-between; gap:16px; font-size:1.05rem; width:100%; margin-bottom:4px;">
+            <div class="sbb-left" style="display:flex; align-items:center; gap:10px; flex:1;">
+              <span class="sbb-badge" style="background:var(--bg-card-bot); border:1px solid var(--border); color:var(--text); padding:3px 8px; border-radius:6px; font-size:0.9rem; font-weight:600; min-width:32px; text-align:center;">${line}</span>
+              <span class="sbb-dest" style="color:var(--text); max-width:145px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${dest}</span>
             </div>
-            <span style="color:var(--c-home); font-weight:600; width:55px; text-align:right;">${timeDisplay}</span>
+            <span class="sbb-time" style="color:var(--c-home); font-weight:600; width:55px; text-align:right;">${timeDisplay}</span>
           </div>
         `;
       });
