@@ -1187,7 +1187,7 @@ async function loadCountdownsData() {
 function openCountdowns() {
   openOverlay('Countdowns', 'var(--c-countdown)', () => `
     <div class="input-row">
-      <input type="text" id="new-cd-title" placeholder="Ereignis (z.B. Malediven 🌴)" />
+      <input type="text" id="new-cd-title" placeholder="Ereignis eintragen..." />
       <input type="date" id="new-cd-date" style="flex:none; width:auto; padding-right:12px;" />
       <button id="add-cd-btn" class="btn-compact"><i data-lucide="plus"></i></button>
     </div>
