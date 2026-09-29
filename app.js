@@ -1088,7 +1088,7 @@ function openChores() {
         <option value="Timo">Timo</option>
         <option value="Lana">Lana</option>
       </select>
-      <button id="add-chore-btn" class="btn-primary" style="background:var(--c-chores); width:var(--touch); flex-shrink:0;"><i data-lucide="plus"></i></button>
+      <button id="add-chore-btn" class="btn-compact"><i data-lucide="plus"></i></button>
     </div>
     <div id="chores-list"></div>
   `, () => {
@@ -1193,7 +1193,7 @@ function openCountdowns() {
       <input type="text" id="new-cd-title" class="input-modern" placeholder="Ereignis (z.B. Malediven 🌴)" />
       <div style="display:flex; gap:8px;">
         <input type="date" id="new-cd-date" class="input-modern" style="flex:1;" />
-        <button id="add-cd-btn" class="btn-primary" style="background:var(--c-countdown); width:var(--touch); flex-shrink:0;"><i data-lucide="plus"></i></button>
+        <button id="add-cd-btn" class="btn-compact"><i data-lucide="plus"></i></button>
       </div>
     </div>
     <div id="countdowns-list"></div>
