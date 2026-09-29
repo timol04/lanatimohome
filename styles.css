@@ -170,6 +170,9 @@ html, body {
   #tram-board .sbb-badge { padding: 1px 4px !important; font-size: 0.7rem !important; min-width: 24px !important; }
   #tram-board .sbb-dest { max-width: 85px !important; }
   #tram-board .sbb-time { width: 45px !important; }
+
+  /* Widget-Padding auf Mobile reduzieren für mehr Inhaltsplatz */
+  .widget { padding: var(--space-md); }
 }
 
 /* ── Carousel / Grid ─────────────────────────────────────────── */
@@ -195,8 +198,8 @@ html, body {
 .widget {
   background: linear-gradient(180deg, var(--bg-surface-top) 0%, var(--bg-surface-bot) 100%);
   border-radius: var(--radius-lg);
-  padding: var(--space-md); /* Mehr Platz für Content */
-  aspect-ratio: 1.1 / 1; /* Etwas quadratischer für mehr Höhe */
+  padding: var(--space-lg);
+  aspect-ratio: 1.25 / 1;
   display: flex;
   flex-direction: column;
   cursor: pointer;
