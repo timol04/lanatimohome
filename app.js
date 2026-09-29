@@ -768,6 +768,7 @@ function openTodos() {
   openOverlay('To-Do', 'var(--c-todo)', () => `
     <div class="input-row">
       <input type="text" id="new-todo-input" placeholder="Neue Aufgabe..." autocomplete="off" />
+      <input type="date" id="new-todo-date" style="flex:none; width:auto; padding-right:12px;" />
       <button id="add-todo-btn" class="btn-compact"><i data-lucide="plus"></i></button>
     </div>
     <div class="list-toolbar">
@@ -819,9 +820,19 @@ function renderTodoList() {
 
 async function addTodoItem() {
   const input = document.getElementById('new-todo-input');
-  const text = input.value.trim();
+  const dateInput = document.getElementById('new-todo-date');
+  let text = input.value.trim();
+  const dateVal = dateInput.value;
   if (!text) return;
+  
+  if (dateVal) {
+     const dateObj = new Date(dateVal);
+     const dateStr = dateObj.toLocaleDateString('de-CH', {day: '2-digit', month: '2-digit'});
+     text = `${text} (bis ${dateStr})`;
+  }
+  
   input.value = '';
+  dateInput.value = '';
   
   const tempId = 'temp-' + Date.now();
   todosItems.push({ id: tempId, text, is_done: false, created_at: new Date().toISOString() });
@@ -1080,11 +1091,12 @@ function openChores() {
   openOverlay('Ämtli-Plan', 'var(--c-chores)', () => `
     <div class="input-row">
       <input type="text" id="new-chore-input" placeholder="Was muss geputzt/erledigt werden?" />
-      <select id="new-chore-assignee" style="width:100px; flex:none;">
+      <select id="new-chore-assignee" style="width:90px; flex:none;">
         <option value="">Wer?</option>
         <option value="Timo">Timo</option>
         <option value="Lana">Lana</option>
       </select>
+      <input type="date" id="new-chore-date" style="flex:none; width:auto; padding-right:12px;" />
       <button id="add-chore-btn" class="btn-compact"><i data-lucide="plus"></i></button>
     </div>
     <div id="chores-list"></div>
@@ -1128,15 +1140,24 @@ function renderChoresList() {
 async function addChore() {
   const input = document.getElementById('new-chore-input');
   const assigneeSelect = document.getElementById('new-chore-assignee');
+  const dateInput = document.getElementById('new-chore-date');
   
   const text = input.value.trim();
   const assignee = assigneeSelect.value;
+  const dateVal = dateInput.value;
   if (!text) return;
   
   input.value = '';
   assigneeSelect.value = '';
+  dateInput.value = '';
   
-  const finalText = assignee ? `${text} (${assignee})` : text;
+  let finalText = text;
+  if (assignee) finalText += ` (${assignee})`;
+  if (dateVal) {
+     const dateObj = new Date(dateVal);
+     const dateStr = dateObj.toLocaleDateString('de-CH', {day: '2-digit', month: '2-digit'});
+     finalText += ` (bis ${dateStr})`;
+  }
   
   const tempId = 'temp-' + Date.now();
   choresItems.unshift({ id: tempId, text: finalText, is_done: false, created_at: new Date().toISOString() });
