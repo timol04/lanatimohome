@@ -179,11 +179,18 @@ function showLoginScreen() {
 // ════════════════════════════════════════════════════════════════
 function showDashboard() {
   document.getElementById('app').innerHTML = `
-    <div id="homescreen-header">
-      <div class="header-time" id="clock-time">--:--</div>
-      <div class="header-date" id="clock-date">Laden...</div>
-      <div class="header-weather">
-        <i data-lucide="cloud-sun"></i> 18°C
+    <div id="homescreen-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div class="header-left">
+        <div class="header-time" id="clock-time">--:--</div>
+        <div class="header-date" id="clock-date">Laden...</div>
+        <div class="header-weather">
+          <i data-lucide="cloud-sun"></i> 18°C
+        </div>
+      </div>
+      <div class="header-right" id="tram-board" style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+        <div style="font-size:0.85rem; color:var(--text-muted); font-weight:500; display:flex; align-items:center; gap:6px; justify-content:flex-end;">
+          <i data-lucide="tram" style="width:16px;height:16px;"></i> Allschwil, Dorf...
+        </div>
       </div>
     </div>
     
@@ -211,6 +218,10 @@ function showDashboard() {
   loadShoppingData(); 
   loadTodosData();
   loadNotesData();
+  
+  loadTramDepartures();
+  // Jede Minute die Trams aktualisieren
+  setInterval(loadTramDepartures, 60000);
 
   lucide.createIcons();
 }
@@ -227,6 +238,51 @@ function startClock() {
   
   updateTime();
   clockInterval = setInterval(updateTime, 1000);
+}
+
+// ════════════════════════════════════════════════════════════════
+// TRAM DEPARTURES (SBB API)
+// ════════════════════════════════════════════════════════════════
+async function loadTramDepartures() {
+  const tramBoard = document.getElementById('tram-board');
+  if (!tramBoard) return;
+  try {
+    const res = await fetch('https://transport.opendata.ch/v1/stationboard?station=Allschwil,+Dorf&limit=3');
+    const data = await res.json();
+    if (data.stationboard && data.stationboard.length > 0) {
+      let html = \`<div style="font-size:0.85rem; color:var(--text-muted); font-weight:500; display:flex; align-items:center; gap:6px; justify-content:flex-end; margin-bottom:4px;">
+                    <i data-lucide="tram" style="width:16px;height:16px;"></i> Allschwil, Dorf
+                  </div>\`;
+      
+      data.stationboard.forEach(dep => {
+        const time = new Date(dep.stop.departure);
+        const timeStr = time.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+        
+        const now = new Date();
+        const diffMs = time - now;
+        const diffMins = Math.floor(diffMs / 60000);
+        
+        let timeDisplay = '';
+        if (diffMins <= 0) timeDisplay = 'Jetzt';
+        else if (diffMins < 60) timeDisplay = \`in \${diffMins}'\`;
+        else timeDisplay = timeStr;
+
+        const line = dep.number;
+        const dest = dep.to;
+        html += \`
+          <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px; font-size:0.9rem;">
+            <span style="background:var(--bg-card-bot); border:1px solid var(--border); color:var(--text); padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600;">\${line}</span>
+            <span style="color:var(--text); width:90px; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${dest}</span>
+            <span style="color:var(--c-home); font-weight:600; width:45px; text-align:right;">\${timeDisplay}</span>
+          </div>
+        \`;
+      });
+      tramBoard.innerHTML = html;
+      lucide.createIcons();
+    }
+  } catch(e) {
+    console.error('SBB API Error', e);
+  }
 }
 
 function renderWidgetGrid() {
