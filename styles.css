@@ -173,6 +173,9 @@ html, body {
 
   /* Widget-Padding auf Mobile reduzieren für mehr Inhaltsplatz */
   .widget { padding: var(--space-md); }
+  
+  /* Auf Mobile nur Icon, Titel und Status-Preview anzeigen (Listen ausblenden) */
+  .widget-content { display: none !important; }
 }
 
 /* ── Carousel / Grid ─────────────────────────────────────────── */
