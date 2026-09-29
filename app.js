@@ -209,12 +209,14 @@ function showDashboard() {
       <div class="header-left">
         <div class="header-time" id="clock-time">--:--</div>
         <div class="header-date" id="clock-date">Laden...</div>
-        <div class="header-weather" id="header-weather">
-          <i data-lucide="cloud-sun"></i> --°C
+        <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+          <div class="header-weather" id="header-weather" style="margin-top:0;">
+            <i data-lucide="cloud-sun"></i> --°C
+          </div>
+          <button onclick="window.location.reload(true)" title="Neu laden (Sync)" style="background:var(--bg-card); border:1px solid var(--border); color:var(--text-muted); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+            <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
+          </button>
         </div>
-        <button onclick="window.location.reload(true)" style="margin-top:16px; background:var(--bg-card); border:1px solid var(--border); color:var(--text-muted); border-radius:var(--radius-sm); padding:6px 12px; display:flex; align-items:center; gap:8px; font-size:0.8rem; font-weight:600; cursor:pointer;">
-          <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Sync / Reload
-        </button>
       </div>
       <div class="header-right" id="tram-board" style="display:flex; flex-direction:column; gap:8px; margin-top:0;">
         <div class="sbb-title" style="font-size:1.1rem; color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; justify-content:flex-end;">
