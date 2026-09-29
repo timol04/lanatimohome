@@ -20,14 +20,14 @@ let clockInterval = null;
 
 // ── Widget-Konfiguration ──────────────────────────────────────
 const WIDGETS = [
-  { id: 'shopping',  title: 'Einkaufsliste', icon: '🛒', preview: 'Wird geladen...', action: openShopping },
-  { id: 'todo',      title: 'To-Do',         icon: '✅', preview: 'Wird geladen...', action: openTodos },
-  { id: 'calendar',  title: 'Kalender',      icon: '📅', preview: 'Keine Termine', action: () => openPlaceholderOverlay('Kalender') },
-  { id: 'weather',   title: 'Wetter',        icon: '⛅️', preview: 'Wird geladen...', action: () => openPlaceholderOverlay('Wetter') },
-  { id: 'trash',     title: 'Abfall',        icon: '🗑️', preview: 'Wird geladen...', action: () => openPlaceholderOverlay('Abfallkalender') },
-  { id: 'notes',     title: 'Notizen',       icon: '📌', preview: 'Wird geladen...', action: openNotes },
-  { id: 'food',      title: 'Essensplan',    icon: '🍽️', preview: 'Kein Plan für heute', action: () => openPlaceholderOverlay('Essensplan') },
-  { id: 'smarthome', title: 'Smart Home',    icon: '🏠', preview: 'Kommt später', action: () => openPlaceholderOverlay('Smart Home') },
+  { id: 'shopping',  title: 'Einkaufsliste', icon: 'shopping-cart', preview: 'Wird geladen...', action: openShopping },
+  { id: 'todo',      title: 'To-Do',         icon: 'check-square',  preview: 'Wird geladen...', action: openTodos },
+  { id: 'calendar',  title: 'Kalender',      icon: 'calendar',      preview: 'Keine Termine', action: () => openPlaceholderOverlay('Kalender') },
+  { id: 'weather',   title: 'Wetter',        icon: 'cloud-sun',     preview: 'Wird geladen...', action: () => openPlaceholderOverlay('Wetter') },
+  { id: 'trash',     title: 'Abfall',        icon: 'trash-2',       preview: 'Wird geladen...', action: () => openPlaceholderOverlay('Abfallkalender') },
+  { id: 'notes',     title: 'Notizen',       icon: 'sticky-note',   preview: 'Wird geladen...', action: openNotes },
+  { id: 'food',      title: 'Essensplan',    icon: 'utensils',      preview: 'Kein Plan für heute', action: () => openPlaceholderOverlay('Essensplan') },
+  { id: 'smarthome', title: 'Smart Home',    icon: 'home',          preview: 'Kommt später', action: () => openPlaceholderOverlay('Smart Home') },
 ];
 
 // ── Bootstrap ─────────────────────────────────────────────────
@@ -63,7 +63,7 @@ function showLoginScreen() {
   document.getElementById('app').innerHTML = `
     <div class="login-screen">
       <div class="login-card">
-        <div class="login-logo">🏡</div>
+        <div class="login-logo"><i data-lucide="home" style="width: 48px; height: 48px;"></i></div>
         <h1 class="login-title">LanaTimoHome</h1>
         <p class="login-subtitle">Unser gemeinsames Dashboard</p>
 
@@ -76,7 +76,7 @@ function showLoginScreen() {
             <label for="login-password">Passwort</label>
             <div class="pw-wrap">
               <input type="password" id="login-password" placeholder="••••••••" required />
-              <button type="button" id="pw-toggle" class="pw-eye">👁</button>
+              <button type="button" id="pw-toggle" class="pw-eye"><i data-lucide="eye"></i></button>
             </div>
           </div>
           <div id="login-error" class="login-error" style="display:none"></div>
@@ -86,6 +86,8 @@ function showLoginScreen() {
     </div>
   `;
 
+  lucide.createIcons();
+
   const form = document.getElementById('login-form');
   const pwInput = document.getElementById('login-password');
   const pwToggle = document.getElementById('pw-toggle');
@@ -93,7 +95,8 @@ function showLoginScreen() {
   pwToggle.addEventListener('click', () => {
     const isHidden = pwInput.type === 'password';
     pwInput.type = isHidden ? 'text' : 'password';
-    pwToggle.textContent = isHidden ? '🙈' : '👁';
+    pwToggle.innerHTML = isHidden ? '<i data-lucide="eye-off"></i>' : '<i data-lucide="eye"></i>';
+    lucide.createIcons();
   });
 
   form.addEventListener('submit', async e => {
@@ -109,7 +112,7 @@ function showLoginScreen() {
 
     const { error } = await db.auth.signInWithPassword({ email, password });
     if (error) {
-      errorEl.textContent = error.message === 'Invalid login credentials' ? '❌ Falsche Daten' : `❌ ${error.message}`;
+      errorEl.innerHTML = error.message === 'Invalid login credentials' ? 'Fehler: Falsche Daten' : `Fehler: ${error.message}`;
       errorEl.style.display = 'block';
       btn.disabled = false;
       btn.textContent = 'Anmelden';
@@ -126,7 +129,9 @@ function showDashboard() {
     <div id="homescreen-header">
       <div class="header-time" id="clock-time">--:--</div>
       <div class="header-date" id="clock-date">Laden...</div>
-      <div class="header-weather" id="header-weather">⛅️ 18°C</div>
+      <div class="header-weather" id="header-weather">
+        <i data-lucide="cloud-sun" style="width:24px; height:24px;"></i> 18°C
+      </div>
     </div>
     
     <div class="carousel-container" id="carousel-container">
@@ -143,7 +148,7 @@ function showDashboard() {
     <div id="overlay-container">
       <div class="overlay-header">
         <button class="overlay-back" onclick="closeOverlay()">
-          <span>‹</span> Zurück
+          <i data-lucide="chevron-left"></i> Zurück
         </button>
         <div class="overlay-title" id="overlay-title">Titel</div>
       </div>
@@ -158,9 +163,11 @@ function showDashboard() {
   initSwipeNavigation();
   
   // Background Tasks
-  loadShoppingData(); // For the preview text
+  loadShoppingData(); 
   loadTodosData();
   loadNotesData();
+
+  lucide.createIcons();
 }
 
 function startClock() {
@@ -197,7 +204,7 @@ function renderWidgetGrid() {
       widgetEl.id = `widget-${w.id}`;
       widgetEl.onclick = w.action;
       widgetEl.innerHTML = `
-        <div class="widget-icon">${w.icon}</div>
+        <div class="widget-icon"><i data-lucide="${w.icon}"></i></div>
         <div class="widget-title">${w.title}</div>
         <div class="widget-preview" id="preview-${w.id}">${w.preview}</div>
       `;
@@ -298,6 +305,7 @@ function openOverlay(title, renderFn, onInit) {
   content.innerHTML = renderFn();
   if (onInit) onInit();
   
+  lucide.createIcons();
   container.classList.add('open');
 }
 
@@ -308,7 +316,7 @@ function closeOverlay() {
 function openPlaceholderOverlay(title) {
   openOverlay(title, () => `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted);text-align:center;">
-      <div style="font-size:3rem;margin-bottom:16px;">🚧</div>
+      <div style="margin-bottom:16px;"><i data-lucide="construction" style="width:64px;height:64px;opacity:0.5;"></i></div>
       <p>Detailansicht für<br><b>${title}</b><br>kommt später.</p>
     </div>
   `);
@@ -336,7 +344,6 @@ function updateShoppingPreview() {
   const openCount = shoppingItems.filter(i => !i.is_done).length;
   updateWidgetPreview('shopping', `${openCount} offene Artikel`);
   
-  // If overlay is open, re-render list
   if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('shopping-list')) {
     renderShoppingList();
   }
@@ -353,12 +360,12 @@ function openShopping() {
   openOverlay('Einkaufsliste', () => `
     <div class="shopping-input-row">
       <input type="text" id="new-item-input" placeholder="Neues Item..." autocomplete="off" />
-      <button id="add-item-btn" class="btn btn-primary">＋</button>
+      <button id="add-item-btn" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;padding:0 12px;"><i data-lucide="plus"></i></button>
     </div>
     <div class="shopping-toolbar">
       <span style="font-weight:600">Artikel</span>
-      <button id="clear-done-btn" class="btn btn-danger" style="display:none;height:32px;padding:0 12px;font-size:0.8rem;">
-        Erledigte löschen
+      <button id="clear-done-btn" class="btn btn-danger" style="display:none;height:32px;padding:0 12px;font-size:0.8rem;align-items:center;gap:4px;">
+        <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen
       </button>
     </div>
     <div id="shopping-list"></div>
@@ -376,7 +383,7 @@ function renderShoppingList() {
   if (!list) return;
 
   const doneCount = shoppingItems.filter(i => i.is_done).length;
-  if (clearBtn) clearBtn.style.display = doneCount > 0 ? 'block' : 'none';
+  if (clearBtn) clearBtn.style.display = doneCount > 0 ? 'flex' : 'none';
 
   list.innerHTML = '';
   const sorted = [...shoppingItems.filter(i => !i.is_done), ...shoppingItems.filter(i => i.is_done)];
@@ -390,12 +397,14 @@ function renderShoppingList() {
     const el = document.createElement('div');
     el.className = `shopping-item ${item.is_done ? 'done' : ''}`;
     el.innerHTML = `
-      <div class="item-check" onclick="toggleShoppingItem('${item.id}')">✓</div>
+      <div class="item-check" onclick="toggleShoppingItem('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
       <div class="item-text">${escapeHtml(item.text)}</div>
-      <button class="item-delete" onclick="deleteShoppingItem('${item.id}')">✕</button>
+      <button class="item-delete" onclick="deleteShoppingItem('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
     `;
     list.appendChild(el);
   });
+
+  lucide.createIcons();
 }
 
 async function addShoppingItem() {
@@ -404,14 +413,13 @@ async function addShoppingItem() {
   if (!text) return;
   input.value = '';
   
-  // Optimistic update
   const tempId = 'temp-' + Date.now();
   shoppingItems.push({ id: tempId, text, is_done: false, created_at: new Date().toISOString() });
   updateShoppingPreview();
 
   const { error } = await db.from('shopping_items').insert([{ text, is_done: false }]);
   if (error) showToast('Fehler beim Speichern');
-  else loadShoppingData(); // Reload to get real IDs
+  else loadShoppingData();
 }
 
 async function toggleShoppingItem(id) {
@@ -473,12 +481,12 @@ function openTodos() {
   openOverlay('To-Do', () => `
     <div class="shopping-input-row">
       <input type="text" id="new-todo-input" placeholder="Neue Aufgabe..." autocomplete="off" />
-      <button id="add-todo-btn" class="btn btn-primary">＋</button>
+      <button id="add-todo-btn" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;padding:0 12px;"><i data-lucide="plus"></i></button>
     </div>
     <div class="shopping-toolbar">
       <span style="font-weight:600">Aufgaben</span>
-      <button id="clear-done-todo-btn" class="btn btn-danger" style="display:none;height:32px;padding:0 12px;font-size:0.8rem;">
-        Erledigte löschen
+      <button id="clear-done-todo-btn" class="btn btn-danger" style="display:none;height:32px;padding:0 12px;font-size:0.8rem;align-items:center;gap:4px;">
+        <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen
       </button>
     </div>
     <div id="todo-list"></div>
@@ -496,24 +504,26 @@ function renderTodoList() {
   if (!list) return;
 
   const doneCount = todosItems.filter(i => i.is_done).length;
-  if (clearBtn) clearBtn.style.display = doneCount > 0 ? 'block' : 'none';
+  if (clearBtn) clearBtn.style.display = doneCount > 0 ? 'flex' : 'none';
 
   list.innerHTML = '';
   const sorted = [...todosItems.filter(i => !i.is_done), ...todosItems.filter(i => i.is_done)];
   if (sorted.length === 0) {
-    list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px;">Alles erledigt! 🎉</div>`;
+    list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px;">Alles erledigt!</div>`;
     return;
   }
   sorted.forEach(item => {
     const el = document.createElement('div');
-    el.className = `shopping-item ${item.is_done ? 'done' : ''}`; // We reuse the shopping item styling
+    el.className = `shopping-item ${item.is_done ? 'done' : ''}`;
     el.innerHTML = `
-      <div class="item-check" onclick="toggleTodoItem('${item.id}')">✓</div>
+      <div class="item-check" onclick="toggleTodoItem('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
       <div class="item-text">${escapeHtml(item.text)}</div>
-      <button class="item-delete" onclick="deleteTodoItem('${item.id}')">✕</button>
+      <button class="item-delete" onclick="deleteTodoItem('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
     `;
     list.appendChild(el);
   });
+  
+  lucide.createIcons();
 }
 
 async function addTodoItem() {
@@ -592,7 +602,7 @@ function openNotes() {
   openOverlay('Notizen', () => `
     <div class="shopping-input-row" style="align-items: flex-start;">
       <textarea id="new-note-input" placeholder="Neue Notiz..." rows="3" style="flex:1; background:var(--bg-input); border:none; border-radius:var(--radius-sm); color:var(--text); padding:12px 16px; font-size:1rem; resize:none; outline:none; font-family:inherit;"></textarea>
-      <button id="add-note-btn" class="btn btn-primary" style="height: auto; align-self: stretch;">Senden</button>
+      <button id="add-note-btn" class="btn btn-primary" style="height: auto; align-self: stretch; padding:0 16px;"><i data-lucide="send"></i></button>
     </div>
     <div id="notes-list" style="display:flex; flex-direction:column; gap:12px; margin-top:16px;"></div>
   `, () => {
@@ -629,10 +639,14 @@ function renderNotesList() {
         <span>${date}</span>
       </div>
       <div style="white-space:pre-wrap; line-height:1.4;">${escapeHtml(item.text)}</div>
-      <button class="item-delete" style="position:absolute; top:12px; right:12px; opacity:0.5; padding:4px;" onclick="deleteNoteItem('${item.id}')">✕</button>
+      <button class="item-delete" style="position:absolute; top:12px; right:12px; opacity:0.5; padding:4px;" onclick="deleteNoteItem('${item.id}')">
+        <i data-lucide="x" style="width:16px;height:16px;"></i>
+      </button>
     `;
     list.appendChild(el);
   });
+  
+  lucide.createIcons();
 }
 
 async function addNoteItem() {

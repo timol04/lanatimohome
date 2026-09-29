@@ -1,4 +1,8 @@
-# LanaTimoHome 🏠
+# LanaTimoHome
+
+> **WICHTIGE REGEL FÜR KI:** 
+> Ab sofort dürfen in diesem Projekt **NIEMALS MEHR Emojis** verwendet werden! 
+> Nutze stattdessen echte SVG-Icons (z.B. Lucide Icons via CDN) für ein cleanes Design.
 
 Gemeinsames Alltags-Dashboard für Timo & Lana – läuft als PWA auf Tablet und Handy.
 
