@@ -1101,12 +1101,11 @@ function openChores() {
           <option value="Lana">Lana</option>
         </select>
         <select id="new-chore-recurrence" style="flex:1;">
-          <option value="">Einmalig</option>
-          <option value="Täglich">Täglich</option>
+          <option value="">Einmalig (Todo)</option>
+          <option value="Täglich" selected>Täglich</option>
           <option value="Wöchentlich">Wöchentlich</option>
           <option value="Monatlich">Monatlich</option>
         </select>
-        <input type="date" id="new-chore-date" style="flex:1; padding-right:12px;" />
       </div>
     </div>
     <div class="list-toolbar">
@@ -1131,8 +1130,10 @@ function renderChoresList() {
   const doneCount = choresItems.filter(i => i.is_done).length;
   if (clearBtn) clearBtn.style.display = doneCount > 0 ? 'flex' : 'none';
   
-  const sorted = [...choresItems.filter(i => !i.is_done), ...choresItems.filter(i => i.is_done)];
-  if (sorted.length === 0) {
+  const recurring = choresItems.filter(i => i.text.includes('[Täglich]') || i.text.includes('[Wöchentlich]') || i.text.includes('[Monatlich]'));
+  const oneOff = choresItems.filter(i => !recurring.includes(i));
+  
+  if (choresItems.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon" style="background:color-mix(in srgb, var(--c-chores) 15%, transparent); color:var(--c-chores);"><i data-lucide="sparkles"></i></div>
@@ -1143,16 +1144,46 @@ function renderChoresList() {
     return;
   }
 
-  sorted.forEach(item => {
-    const el = document.createElement('div');
-    el.className = `list-item ${item.is_done ? 'done' : ''}`;
-    el.innerHTML = `
-      <div class="item-check" onclick="toggleChore('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
-      <div class="item-text">${escapeHtml(item.text)}</div>
-      <button class="item-delete" onclick="deleteChore('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
-    `;
-    list.appendChild(el);
-  });
+  const renderItems = (items) => {
+    const sorted = [...items.filter(i => !i.is_done), ...items.filter(i => i.is_done)];
+    sorted.forEach(item => {
+      const el = document.createElement('div');
+      el.className = `list-item ${item.is_done ? 'done' : ''}`;
+      el.innerHTML = `
+        <div class="item-check" onclick="toggleChore('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
+        <div class="item-text">${escapeHtml(item.text)}</div>
+        <button class="item-delete" onclick="deleteChore('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+      `;
+      list.appendChild(el);
+    });
+  };
+
+  if (recurring.length > 0) {
+    const header = document.createElement('div');
+    header.style.color = 'var(--c-chores)';
+    header.style.fontSize = '0.9rem';
+    header.style.fontWeight = '700';
+    header.style.marginTop = '8px';
+    header.style.marginBottom = '8px';
+    header.style.textTransform = 'uppercase';
+    header.style.letterSpacing = '1px';
+    header.innerHTML = 'Wiederkehrend';
+    list.appendChild(header);
+    renderItems(recurring);
+  }
+
+  if (oneOff.length > 0) {
+    const header = document.createElement('div');
+    header.style.color = 'var(--text-muted)';
+    header.style.fontSize = '0.9rem';
+    header.style.fontWeight = '600';
+    header.style.marginTop = '16px';
+    header.style.marginBottom = '8px';
+    header.innerHTML = 'Einmalig';
+    list.appendChild(header);
+    renderItems(oneOff);
+  }
+
   lucide.createIcons();
 }
 
@@ -1160,27 +1191,19 @@ async function addChore() {
   const input = document.getElementById('new-chore-input');
   const assigneeSelect = document.getElementById('new-chore-assignee');
   const recurrenceSelect = document.getElementById('new-chore-recurrence');
-  const dateInput = document.getElementById('new-chore-date');
   
   const text = input.value.trim();
   const assignee = assigneeSelect.value;
   const recurrence = recurrenceSelect.value;
-  const dateVal = dateInput.value;
   if (!text) return;
   
   input.value = '';
   assigneeSelect.value = '';
-  recurrenceSelect.value = '';
-  dateInput.value = '';
+  recurrenceSelect.value = 'Täglich'; // Zurück auf den neuen Default setzen
   
   let finalText = text;
   if (assignee) finalText += ` (${assignee})`;
   if (recurrence) finalText += ` [${recurrence}]`;
-  if (dateVal) {
-     const dateObj = new Date(dateVal);
-     const dateStr = dateObj.toLocaleDateString('de-CH', {day: '2-digit', month: '2-digit'});
-     finalText += ` (bis ${dateStr})`;
-  }
   
   const tempId = 'temp-' + Date.now();
   choresItems.unshift({ id: tempId, text: finalText, is_done: false, created_at: new Date().toISOString() });
