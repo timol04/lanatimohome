@@ -16,9 +16,11 @@ let shoppingItems = [];
 let todosItems = [];
 let notesItems = [];
 let foodItems = [];
+let choresItems = [];
 let currentCarouselPage = 0;
 let clockInterval = null;
 let foodChan = null;
+let choresChan = null;
 let currentWeatherData = { temp: '--', icon: 'cloud-sun', desc: 'Laden...', high: '--', low: '--', daily: [] };
 
 // ── Widget-Konfiguration ──────────────────────────────────────
@@ -108,6 +110,18 @@ const WIDGETS = [
     renderContent: () => `<div class="mini-placeholder"><i data-lucide="plug"></i>Offline</div>`,
     getPreview: () => 'In Entwicklung'
   },
+  { 
+    id: 'chores', title: 'Ämtli-Plan', icon: 'sparkles', color: 'var(--c-chores)', action: openChores,
+    renderContent: () => {
+      const pending = choresItems.filter(i => !i.is_done);
+      if(pending.length === 0) return `<div class="mini-placeholder"><i data-lucide="award"></i>Alles sauber!</div>`;
+      return pending.slice(0, 3).map(i => `<div class="mini-list-item"><i data-lucide="circle"></i><span class="mini-text">${escapeHtml(i.text)}</span></div>`).join('');
+    },
+    getPreview: () => {
+      const c = choresItems.filter(i => !i.is_done).length;
+      return c === 0 ? 'Alles sauber' : `${c} offene Ämtli`;
+    }
+  }
 ];
 
 // ── Bootstrap ─────────────────────────────────────────────────
@@ -250,6 +264,7 @@ function showDashboard() {
   loadTodosData();
   loadNotesData();
   loadFoodData();
+  loadChoresData();
   
   loadTramDepartures();
   // Jede Minute die Trams aktualisieren
@@ -990,6 +1005,103 @@ async function addMealToShopping(meal) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// ÄMTLI-PLAN (CHORES)
+// ════════════════════════════════════════════════════════════════
+async function loadChoresData() {
+  const { data, error } = await db.from('chores').select('*').order('created_at', { ascending: false });
+  if (!error && data) {
+    choresItems = data;
+    updateWidgetInGrid('chores');
+  }
+  if (!choresChan) {
+    choresChan = db.channel('chores_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'chores' }, payload => {
+      if (payload.eventType === 'INSERT' && !choresItems.find(i => i.id === payload.new.id)) choresItems.unshift(payload.new);
+      if (payload.eventType === 'UPDATE') choresItems = choresItems.map(i => i.id === payload.new.id ? payload.new : i);
+      if (payload.eventType === 'DELETE') choresItems = choresItems.filter(i => i.id !== payload.old.id);
+      updateWidgetInGrid('chores');
+      renderChoresList();
+    }).subscribe();
+  }
+}
+
+function openChores() {
+  openOverlay('Ämtli-Plan', 'var(--c-chores)', () => `
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <input type="text" id="new-chore-input" class="input-modern" placeholder="Was muss geputzt/erledigt werden?" style="flex:1;" />
+      <button id="add-chore-btn" class="btn-primary" style="background:var(--c-chores);"><i data-lucide="plus"></i></button>
+    </div>
+    <div id="chores-list"></div>
+  `, () => {
+    document.getElementById('add-chore-btn').addEventListener('click', addChore);
+    document.getElementById('new-chore-input').addEventListener('keydown', e => { if (e.key === 'Enter') addChore(); });
+    renderChoresList();
+  });
+}
+
+function renderChoresList() {
+  const list = document.getElementById('chores-list');
+  if (!list) return;
+  list.innerHTML = '';
+  
+  const sorted = [...choresItems.filter(i => !i.is_done), ...choresItems.filter(i => i.is_done)];
+  if (sorted.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon" style="background:color-mix(in srgb, var(--c-chores) 15%, transparent); color:var(--c-chores);"><i data-lucide="sparkles"></i></div>
+        <h3>Alles blitzblank!</h3>
+        <p>Es gibt aktuell keine offenen Ämtli.</p>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  sorted.forEach(item => {
+    const el = document.createElement('div');
+    el.className = `list-item ${item.is_done ? 'done' : ''}`;
+    el.innerHTML = `
+      <div class="item-check" onclick="toggleChore('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
+      <div class="item-text">${escapeHtml(item.text)}</div>
+      <button class="item-delete" onclick="deleteChore('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+    `;
+    list.appendChild(el);
+  });
+  lucide.createIcons();
+}
+
+async function addChore() {
+  const input = document.getElementById('new-chore-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  
+  const tempId = 'temp-' + Date.now();
+  choresItems.unshift({ id: tempId, text, is_done: false, created_at: new Date().toISOString() });
+  updateWidgetInGrid('chores');
+  renderChoresList();
+
+  const { error } = await db.from('chores').insert([{ text, is_done: false }]);
+  if (error) showToast('Fehler beim Speichern');
+  else loadChoresData();
+}
+
+async function toggleChore(id) {
+  const item = choresItems.find(i => i.id === id);
+  if (!item) return;
+  item.is_done = !item.is_done;
+  updateWidgetInGrid('chores');
+  renderChoresList();
+  await db.from('chores').update({ is_done: item.is_done }).eq('id', id);
+}
+
+async function deleteChore(id) {
+  choresItems = choresItems.filter(i => i.id !== id);
+  updateWidgetInGrid('chores');
+  renderChoresList();
+  await db.from('chores').delete().eq('id', id);
+}
+
+
+// ════════════════════════════════════════════════════════════════
 // UTILS
 // ════════════════════════════════════════════════════════════════
 let toastTimer = null;
@@ -1029,3 +1141,6 @@ window.deleteNoteItem = deleteNoteItem;
 window.saveFoodPlan = saveFoodPlan;
 window.addMealToShopping = addMealToShopping;
 window.saveFoodPlanAndReload = saveFoodPlanAndReload;
+window.addChore = addChore;
+window.toggleChore = toggleChore;
+window.deleteChore = deleteChore;
