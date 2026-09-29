@@ -152,6 +152,11 @@ html, body {
   gap: var(--space-md);
   align-content: flex-start;
 }
+@media (min-width: 768px) {
+  .carousel-page {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
 
 /* ── Widget Kachel ───────────────────────────────────────────── */
 .widget {
