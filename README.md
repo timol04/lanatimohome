@@ -2,15 +2,41 @@
 
 Gemeinsames Alltags-Dashboard für Timo & Lana – läuft als PWA auf Tablet und Handy.
 
+🌐 **Live:** https://timol04.github.io/lanatimohome/
+
 ## Tech-Stack
 - Reines HTML/CSS/JS – kein Build-Prozess nötig
-- [Supabase](https://supabase.com) als Backend (Realtime-Sync)
+- [Supabase](https://supabase.com) als Backend (Realtime-Sync + Auth)
 - GitHub Pages als Hosting
 - PWA-installierbar auf iOS & Android
 
+## Workflow nach jeder Bearbeitung
+
+> **Wichtig:** Nach jeder Änderung an den Dateien direkt auf GitHub pushen,
+> damit die Änderungen live gehen (GitHub Actions deployt automatisch).
+
+```bash
+cd /Users/timolanter/Documents/antigravity/lanatimohome
+
+git add -A
+git commit -m "Beschreibung der Änderung"
+git push origin main
+```
+
+Für den Push wird der Fine-grained GitHub Token benötigt:
+```bash
+# Token temporär im Remote setzen (wird danach wieder entfernt):
+git remote set-url origin https://timol04:GITHUB_TOKEN@github.com/timol04/lanatimohome.git
+git push origin main
+git remote set-url origin https://github.com/timol04/lanatimohome.git
+```
+
+Nach dem Push: GitHub Actions deployt automatisch (~1 Min) →  
+https://github.com/timol04/lanatimohome/actions
+
 ## Supabase Setup
 
-### 1. Tabelle anlegen
+### Tabelle `shopping_items`
 ```sql
 create table shopping_items (
   id uuid default gen_random_uuid() primary key,
@@ -20,29 +46,36 @@ create table shopping_items (
 );
 
 alter table shopping_items enable row level security;
-
--- Alle dürfen lesen (Anon Key reicht)
-create policy "Public read" on shopping_items
-  for select using (true);
-
--- Alle dürfen einfügen
-create policy "Public insert" on shopping_items
-  for insert with check (true);
-
--- Alle dürfen updaten
-create policy "Public update" on shopping_items
-  for update using (true);
-
--- Alle dürfen löschen
-create policy "Public delete" on shopping_items
-  for delete using (true);
 ```
 
-### 2. Realtime aktivieren
-Im Supabase Dashboard: **Database → Replication → shopping_items** aktivieren.
+### RLS-Policies (nur authentifizierte User)
+```sql
+create policy "Auth read"   on shopping_items for select to authenticated using (true);
+create policy "Auth insert" on shopping_items for insert to authenticated with check (true);
+create policy "Auth update" on shopping_items for update to authenticated using (true);
+create policy "Auth delete" on shopping_items for delete to authenticated using (true);
+```
+
+### Realtime aktivieren
+Supabase Dashboard → **Database → Replication → shopping_items** ✅
 
 ## Lokal entwickeln
-Einfach `index.html` im Browser öffnen (oder einen lokalen Server wie `python3 -m http.server 8080`).
+```bash
+python3 -m http.server 8080
+# → http://localhost:8080
+```
+
+## Tabs erweitern
+Neue Tabs in `app.js` im `TABS`-Array ergänzen:
+```js
+{
+  id:       'mein-tab',
+  label:    'Mein Tab',
+  icon:     '📅',
+  render:   renderMeinTab,     // Funktion die HTML-String zurückgibt
+  onActivate: initMeinTab,     // Funktion für Event-Listener etc. (oder null)
+}
+```
 
 ## Deployment
 Push auf `main` → GitHub Actions deployt automatisch auf GitHub Pages.
