@@ -1665,7 +1665,7 @@ function renderPackagesList() {
       <div class="list-item-content">
         <div style="font-weight:500; color:var(--text);">${escapeHtml(item.title)}</div>
         <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
-          ${courierName} ${item.tracking_number ? `· ${escapeHtml(item.tracking_number)}` : ''}
+          ${courierName} ${item.tracking_number ? `· ${escapeHtml(item.tracking_number)}` : ''} · ${escapeHtml(formatUserName(item.author))}
         </div>
       </div>
       ${trackBtnHtml}
@@ -1693,6 +1693,7 @@ async function addPackage() {
     title, 
     courier, 
     tracking_number, 
+    author: currentUser,
     is_delivered: false, 
     created_at: new Date().toISOString() 
   };
@@ -1703,7 +1704,7 @@ async function addPackage() {
   updateWidgetInGrid('packages');
   renderPackagesList();
 
-  const { data, error } = await db.from('packages').insert([{ title, courier, tracking_number, is_delivered: false }]).select();
+  const { data, error } = await db.from('packages').insert([{ title, courier, tracking_number, author: currentUser, is_delivered: false }]).select();
   if (error) {
     console.error("Fehler beim Speichern:", error);
     showToast("Fehler beim Speichern: " + error.message);
