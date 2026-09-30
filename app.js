@@ -827,18 +827,28 @@ function renderShoppingList() {
       const title = parts[0];
       const ingredients = parts[1] || 'Keine Zutaten angegeben';
       itemContentHtml = `
-        <div class="shopping-menu-card">
-          <div class="menu-title"><i data-lucide="chef-hat" style="width:16px;height:16px;"></i> ${escapeHtml(title)}</div>
-          <div class="menu-ingredients">${escapeHtml(ingredients)}</div>
+        <div class="list-item-content">
+          <div style="font-weight:500; color:var(--text); display:flex; align-items:center; gap:6px;">
+            <i data-lucide="chef-hat" style="width:14px;height:14px;"></i> ${escapeHtml(title)}
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+            ${escapeHtml(ingredients)}
+          </div>
         </div>
       `;
     } else {
-      itemContentHtml = `<div class="item-text">${escapeHtml(item.text)}</div>`;
+      itemContentHtml = `
+        <div class="list-item-content">
+          <div style="font-weight:500; color:var(--text);">${escapeHtml(item.text)}</div>
+        </div>
+      `;
     }
 
     const qty = item.quantity || 1;
     el.innerHTML = `
-      <div class="item-check" onclick="toggleShoppingItem('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
+      <div class="list-item-check" onclick="toggleShoppingItem('${item.id}')">
+        <i data-lucide="${item.is_done ? 'check-square' : 'square'}"></i>
+      </div>
       ${itemContentHtml}
       
       <div style="display:flex; align-items:center; background:var(--bg-input); border:1px solid var(--border); border-radius:16px; padding:3px 4px; margin-right:12px; gap:6px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
@@ -847,7 +857,9 @@ function renderShoppingList() {
         <button style="width:26px; height:26px; border-radius:13px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'" onclick="updateShoppingQuantity('${item.id}', 1)"><i data-lucide="plus" style="width:14px;height:14px;"></i></button>
       </div>
 
-      <button class="item-delete" onclick="deleteShoppingItem('${item.id}')"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>
+      <button class="item-delete" onclick="deleteShoppingItem('${item.id}')">
+        <i data-lucide="trash-2"></i>
+      </button>
     `;
     list.appendChild(el);
   });
