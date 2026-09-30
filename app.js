@@ -19,6 +19,7 @@ let foodItems = [];
 let choresItems = [];
 let countdownsItems = [];
 let packagesItems = [];
+let wishlistItems = [];
 let currentCarouselPage = 0;
 let clockInterval = null;
 let foodChan = null;
@@ -52,6 +53,18 @@ const WIDGETS = [
       const c = todosItems.filter(i => !i.is_done).length;
       return c === 0 ? 'Alles erledigt' : `${c} Aufgaben`;
     }
+  },
+  {
+    id: 'wishlist', title: 'Anschaffungen', icon: 'shopping-bag', color: '#ff2d55', action: () => openWishlist(),
+    renderContent: () => {
+      if(wishlistItems.length === 0) return `<div class="mini-placeholder"><i data-lucide="shopping-bag"></i>Keine Wünsche</div>`;
+      const item = wishlistItems[0];
+      return `
+        <div style="font-size:0.9rem; color:var(--text); font-weight:500; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtml(item.title)}</div>
+        ${item.price ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px; font-weight:600;">${escapeHtml(item.price)}</div>` : ''}
+      `;
+    },
+    getPreview: () => wishlistItems.length > 0 ? `${wishlistItems.length} offene Wünsche` : 'Leer'
   },
   { 
     id: 'calendar', title: 'Kalender', icon: 'calendar', color: 'var(--c-calendar)', action: () => openPlaceholderOverlay('Kalender', 'var(--c-calendar)', 'calendar'),
@@ -333,6 +346,7 @@ function showDashboard() {
   loadChoresData();
   loadCountdownsData();
   loadPackagesData();
+  loadWishlistData();
   
   loadTramDepartures();
   updateGreeting();
@@ -1773,6 +1787,203 @@ async function clearDeliveredPackages() {
   renderPackagesList();
   if (toDelete.length > 0) {
     await db.from('packages').delete().in('id', toDelete);
+  }
+}
+
+// ── WISHLIST WIDGET ───────────────────────────────────────────
+async function loadWishlistData() {
+  const { data, error } = await db.from('wishlist').select('*').order('created_at', { ascending: false });
+  if (!error && data) {
+    wishlistItems = data;
+    if (currentUser) {
+      db.channel('public:wishlist').on('postgres_changes', { event: '*', schema: 'public', table: 'wishlist' }, payload => {
+        if (payload.eventType === 'INSERT' && !wishlistItems.find(i => i.id === payload.new.id)) wishlistItems.unshift(payload.new);
+        if (payload.eventType === 'UPDATE') wishlistItems = wishlistItems.map(i => i.id === payload.new.id ? payload.new : i);
+        if (payload.eventType === 'DELETE') wishlistItems = wishlistItems.filter(i => i.id !== payload.old.id);
+        updateWidgetInGrid('wishlist');
+        if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('wishlist-list')) renderWishlist();
+      }).subscribe();
+    }
+  }
+}
+
+function openWishlist() {
+  openOverlay('Anschaffungen', '#ff2d55', () => `
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div class="input-row">
+        <input type="url" id="new-wish-url" placeholder="Link zum Produkt einfügen (z.B. ikea.com/...)" />
+        <button id="scan-wish-btn" class="btn-compact" style="width:auto; padding:0 12px; font-size:0.85rem; font-weight:600;"><i data-lucide="scan-line"></i> Scannen</button>
+      </div>
+      <div id="wish-preview-box" style="display:none; background:var(--bg-input); padding:12px; border-radius:12px; border:1px solid var(--border); margin-top:8px;">
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px; font-weight:600; text-transform:uppercase;">Scan-Ergebnis (Bitte prüfen/ergänzen)</div>
+        <img id="wish-preview-img" src="" style="width:100%; height:120px; object-fit:cover; border-radius:8px; display:none; margin-bottom:8px; background:var(--bg-surface-bot);" />
+        <input type="text" id="new-wish-title" placeholder="Titel (z.B. Sofa SÖDERHAMN)" class="input-row" style="width:100%; margin-bottom:6px; background:var(--bg-surface-bot);" />
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="new-wish-price" placeholder="Preis (z.B. 499 CHF)" class="input-row" style="flex:1; background:var(--bg-surface-bot);" />
+          <input type="text" id="new-wish-color" placeholder="Farbe" class="input-row" style="flex:1; background:var(--bg-surface-bot);" />
+        </div>
+        <button id="add-wish-btn" style="width:100%; margin-top:12px; height:40px; border-radius:12px; background:#ff2d55; color:white; border:none; font-weight:600; cursor:pointer;">Zur Wunschliste hinzufügen</button>
+      </div>
+    </div>
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; margin-top:24px;">
+      <h3 style="color:var(--text); font-size:1.1rem; font-weight:600;">Wünsche</h3>
+      <button style="height:32px; padding:0 12px; border-radius:16px; display:flex; align-items:center; gap:6px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); font-size:0.85rem; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'" onclick="clearPurchasedWishes()">
+        <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Gekaufte löschen
+      </button>
+    </div>
+    <div id="wishlist-list"></div>
+  `, () => {
+    document.getElementById('scan-wish-btn').addEventListener('click', scanWishUrl);
+    document.getElementById('new-wish-url').addEventListener('keydown', e => { if(e.key === 'Enter') scanWishUrl(); });
+    document.getElementById('add-wish-btn').addEventListener('click', addWishItem);
+    renderWishlist();
+  });
+}
+
+let lastScannedImageUrl = '';
+
+async function scanWishUrl() {
+  const urlInput = document.getElementById('new-wish-url');
+  const btn = document.getElementById('scan-wish-btn');
+  const url = urlInput.value.trim();
+  if (!url || !url.startsWith('http')) {
+    showToast("Bitte einen gültigen Link inkl. https:// eingeben");
+    return;
+  }
+
+  btn.innerHTML = '<i data-lucide="loader" class="spin"></i> Lade...';
+  lucide.createIcons();
+  
+  try {
+    // Rufe unsere neue Edge Function auf
+    const { data, error } = await db.functions.invoke('scrape-link', { body: { url } });
+    
+    if (error || !data) throw new Error(error?.message || "Fehler beim Scannen");
+    
+    document.getElementById('wish-preview-box').style.display = 'block';
+    document.getElementById('new-wish-title').value = data.title || '';
+    document.getElementById('new-wish-price').value = data.price || '';
+    
+    const imgEl = document.getElementById('wish-preview-img');
+    if (data.image) {
+      imgEl.src = data.image;
+      imgEl.style.display = 'block';
+      lastScannedImageUrl = data.image;
+    } else {
+      imgEl.style.display = 'none';
+      lastScannedImageUrl = '';
+    }
+  } catch (err) {
+    console.error(err);
+    showToast("Scan fehlgeschlagen. Bitte Felder manuell ausfüllen.");
+    document.getElementById('wish-preview-box').style.display = 'block';
+  } finally {
+    btn.innerHTML = '<i data-lucide="scan-line"></i> Scannen';
+    lucide.createIcons();
+  }
+}
+
+async function addWishItem() {
+  const url = document.getElementById('new-wish-url').value.trim();
+  const title = document.getElementById('new-wish-title').value.trim();
+  const price = document.getElementById('new-wish-price').value.trim();
+  const color = document.getElementById('new-wish-color').value.trim();
+  const authorStr = currentUser?.email?.split('@')[0] ?? 'Unbekannt';
+
+  if (!title) return;
+
+  const newItem = { 
+    id: Date.now(), title, url, price, color, image: lastScannedImageUrl, author: authorStr, is_purchased: false, created_at: new Date().toISOString() 
+  };
+  wishlistItems.unshift(newItem);
+  
+  document.getElementById('new-wish-url').value = '';
+  document.getElementById('new-wish-title').value = '';
+  document.getElementById('new-wish-price').value = '';
+  document.getElementById('new-wish-color').value = '';
+  document.getElementById('wish-preview-box').style.display = 'none';
+  lastScannedImageUrl = '';
+  
+  updateWidgetInGrid('wishlist');
+  renderWishlist();
+
+  const { data, error } = await db.from('wishlist').insert([{ 
+    title, url, price, color, image: newItem.image, author: authorStr, is_purchased: false 
+  }]).select();
+  
+  if (error) {
+    console.error("Fehler beim Speichern:", error);
+    showToast("Fehler beim Speichern: " + error.message);
+  } else if (data) {
+    wishlistItems = wishlistItems.map(i => i.id === newItem.id ? data[0] : i);
+  }
+}
+
+function renderWishlist() {
+  const list = document.getElementById('wishlist-list');
+  if (!list) return;
+
+  list.innerHTML = '';
+  if (wishlistItems.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon"><i data-lucide="shopping-bag"></i></div><h3>Keine Wünsche</h3><p>Zeit für Inspiration.</p></div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  wishlistItems.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'list-item ' + (item.is_purchased ? 'done' : '');
+    
+    let infoParts = [];
+    if (item.price) infoParts.push(escapeHtml(item.price));
+    if (item.color) infoParts.push(`Farbe: ${escapeHtml(item.color)}`);
+    infoParts.push(`von ${escapeHtml(formatUserName(item.author))}`);
+
+    el.innerHTML = `
+      <div class="list-item-check" onclick="toggleWish(${item.id})">
+        <i data-lucide="${item.is_purchased ? 'check-square' : 'square'}"></i>
+      </div>
+      ${item.image ? `<img src="${escapeHtml(item.image)}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; margin-right:12px; border:1px solid var(--border);" />` : ''}
+      <div class="list-item-content">
+        <div style="font-weight:500; color:var(--text);">${escapeHtml(item.title)}</div>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+          ${infoParts.join(' · ')}
+        </div>
+      </div>
+      ${item.url ? `<button onclick="window.open('${escapeHtml(item.url)}', '_blank')" style="margin-right:12px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 12px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Öffnen</button>` : ''}
+      <button class="item-delete" onclick="deleteWish(${item.id})">
+        <i data-lucide="trash-2"></i>
+      </button>
+    `;
+    list.appendChild(el);
+  });
+  lucide.createIcons();
+}
+
+async function toggleWish(id) {
+  const item = wishlistItems.find(i => i.id === id);
+  if (!item) return;
+  item.is_purchased = !item.is_purchased;
+  updateWidgetInGrid('wishlist');
+  renderWishlist();
+  await db.from('wishlist').update({ is_purchased: item.is_purchased }).eq('id', id);
+}
+
+async function deleteWish(id) {
+  wishlistItems = wishlistItems.filter(i => i.id !== id);
+  updateWidgetInGrid('wishlist');
+  renderWishlist();
+  await db.from('wishlist').delete().eq('id', id);
+}
+
+async function clearPurchasedWishes() {
+  const toDelete = wishlistItems.filter(i => i.is_purchased).map(i => i.id);
+  wishlistItems = wishlistItems.filter(i => !i.is_purchased);
+  updateWidgetInGrid('wishlist');
+  renderWishlist();
+  if (toDelete.length > 0) {
+    await db.from('wishlist').delete().in('id', toDelete);
   }
 }
 
