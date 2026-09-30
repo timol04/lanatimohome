@@ -52,9 +52,9 @@ const WIDGETS = [
     }
   },
   { 
-    id: 'calendar', title: 'Kalender', icon: 'calendar', color: 'var(--c-calendar)', action: () => openPlaceholderOverlay('Kalender', 'var(--c-calendar)', 'calendar'),
-    renderContent: () => `<div class="mini-placeholder"><i data-lucide="calendar-clock"></i>Noch nicht bereit</div>`,
-    getPreview: () => 'In Entwicklung'
+    id: 'wifi', title: 'WLAN', icon: 'wifi', color: '#5e5ce6', action: openWifi,
+    renderContent: () => `<div class="mini-placeholder"><i data-lucide="qr-code"></i>Gast-Zugang</div>`,
+    getPreview: () => 'Zum Scannen tippen'
   },
   { 
     id: 'weather', title: 'Wetter', icon: 'cloud-sun', color: 'var(--c-weather)', action: openWeather,
@@ -144,6 +144,19 @@ const WIDGETS = [
     getPreview: () => 'In Entwicklung'
   }
 ];
+
+function openWifi() {
+  openOverlay('WLAN Gastzugang', '#5e5ce6', () => `
+    <div style="text-align:center; padding:var(--space-xl) 0; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+      <h3 style="color:var(--text); margin-bottom:8px; font-size:1.5rem;">Noch kein WLAN eingerichtet</h3>
+      <p style="color:var(--text-muted); margin-bottom:32px; max-width:300px; line-height:1.5;">Sobald ihr euer Internet habt, können wir hier das Netzwerk eintragen. Besucher müssen dann nur noch den Code scannen!</p>
+      <div style="background:#fff; padding:24px; border-radius:16px; display:inline-block; opacity:0.2; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+        <i data-lucide="qr-code" style="width:180px;height:180px;color:#000;stroke-width:1.5;"></i>
+      </div>
+    </div>
+  `);
+  setTimeout(() => lucide.createIcons(), 10);
+}
 
 // ── Bootstrap ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
