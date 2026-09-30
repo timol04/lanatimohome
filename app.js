@@ -847,7 +847,7 @@ function renderShoppingList() {
         <button style="width:26px; height:26px; border-radius:13px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'" onclick="updateShoppingQuantity('${item.id}', 1)"><i data-lucide="plus" style="width:14px;height:14px;"></i></button>
       </div>
 
-      <button class="item-delete" onclick="deleteShoppingItem('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+      <button class="item-delete" onclick="deleteShoppingItem('${item.id}')"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>
     `;
     list.appendChild(el);
   });
