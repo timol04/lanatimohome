@@ -1669,7 +1669,7 @@ function renderPackagesList() {
         </div>
       </div>
       ${trackBtnHtml}
-      <button class="list-item-delete" onclick="deletePackage(${item.id})">
+      <button class="item-delete" onclick="deletePackage(${item.id})">
         <i data-lucide="trash-2"></i>
       </button>
     `;
