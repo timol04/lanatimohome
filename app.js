@@ -1555,3 +1555,91 @@ window.toggleChore = toggleChore;
 window.deleteChore = deleteChore;
 window.addCountdown = addCountdown;
 window.deleteCountdown = deleteCountdown;
+
+// ── Screensaver & Blackout ────────────────────────────────────
+let screensaverTimer;
+let blackoutTimer;
+let screensaverInterval;
+const SCREENSAVER_MS = 5 * 60 * 1000;  // 5 Minuten
+const BLACKOUT_MS = 30 * 60 * 1000;    // 30 Minuten
+
+const placeholderImages = [
+  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2560&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=2560&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=2560&auto=format&fit=crop'
+];
+
+function resetActivityTimers() {
+  clearTimeout(screensaverTimer);
+  clearTimeout(blackoutTimer);
+  clearInterval(screensaverInterval);
+  
+  const screensaver = document.getElementById('screensaver');
+  const blackout = document.getElementById('blackout');
+  
+  if (screensaver) {
+    screensaver.classList.remove('active');
+    setTimeout(() => screensaver.innerHTML = '', 2000); // Cleanup DOM after fade
+  }
+  if (blackout) blackout.classList.remove('active');
+  
+  if (currentUser) {
+    screensaverTimer = setTimeout(startScreensaver, SCREENSAVER_MS);
+    blackoutTimer = setTimeout(startBlackout, BLACKOUT_MS);
+  }
+}
+
+function startScreensaver() {
+  let screensaver = document.getElementById('screensaver');
+  if (!screensaver) {
+    screensaver = document.createElement('div');
+    screensaver.id = 'screensaver';
+    document.body.appendChild(screensaver);
+  }
+  
+  screensaver.innerHTML = `<div style="color:#fff; z-index:9999; font-size:4rem; font-weight:300; position:absolute; bottom:40px; right:40px; text-shadow:0 4px 16px rgba(0,0,0,0.5);" id="screensaver-time"></div>`;
+  screensaver.classList.add('active');
+  
+  let currentIdx = 0;
+  const img1 = document.createElement('img');
+  img1.className = 'screensaver-img visible';
+  img1.src = placeholderImages[currentIdx];
+  screensaver.appendChild(img1);
+  
+  const timeEl = document.getElementById('screensaver-time');
+  const updateTime = () => { if(timeEl) timeEl.textContent = new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }); };
+  updateTime();
+
+  screensaverInterval = setInterval(() => {
+    updateTime();
+    currentIdx = (currentIdx + 1) % placeholderImages.length;
+    const nextImg = document.createElement('img');
+    nextImg.className = 'screensaver-img';
+    nextImg.src = placeholderImages[currentIdx];
+    screensaver.appendChild(nextImg);
+    
+    // Trigger reflow
+    void nextImg.offsetWidth;
+    nextImg.classList.add('visible');
+    
+    setTimeout(() => {
+      const images = screensaver.querySelectorAll('.screensaver-img');
+      if (images.length > 2) images[0].remove();
+    }, 3500);
+  }, 12000); // Bildwechsel alle 12 Sekunden
+}
+
+function startBlackout() {
+  clearInterval(screensaverInterval); 
+  let blackout = document.getElementById('blackout');
+  if (!blackout) {
+    blackout = document.createElement('div');
+    blackout.id = 'blackout';
+    document.body.appendChild(blackout);
+  }
+  blackout.classList.add('active');
+}
+
+// Interaktions-Listener registrieren
+['touchstart', 'mousemove', 'click', 'scroll'].forEach(evt => document.addEventListener(evt, resetActivityTimers, { passive: true }));
+resetActivityTimers();
