@@ -502,16 +502,33 @@ async function updateGreeting() {
   else if (hour >= 18 && hour < 23) greeting = 'Guten Abend';
   else greeting = 'Gute Nacht';
 
-  try {
-    const { data, error } = await db.from('settings').select('household_names').limit(1).single();
-    if (!error && data && data.household_names) {
-      greeting += `, ${data.household_names}`;
-    }
-  } catch (e) {
-    // Ignore errors, table might not exist
+  const name = currentUser?.email?.split('@')[0];
+  if (name) {
+    greeting += `, ${formatUserName(name)}`;
   }
   
   titleEl.innerText = greeting;
+  updateGreetingSubtitle();
+}
+
+function updateGreetingSubtitle() {
+  const subtitleEl = document.getElementById('greeting-subtitle');
+  if (!subtitleEl) return;
+
+  const pendingTodos = todosItems.filter(i => !i.is_done).length;
+  const pendingChores = choresItems.filter(i => !i.is_done).length;
+  const pendingPackages = packagesItems.filter(i => !i.is_delivered).length;
+  
+  let parts = [];
+  if (pendingTodos > 0) parts.push(`${pendingTodos} To-Do${pendingTodos > 1 ? 's' : ''}`);
+  if (pendingChores > 0) parts.push(`${pendingChores} Ämtli`);
+  if (pendingPackages > 0) parts.push(`${pendingPackages} Paket${pendingPackages > 1 ? 'e' : ''}`);
+  
+  if (parts.length > 0) {
+    subtitleEl.innerText = 'Heute: ' + parts.join(' · ');
+  } else {
+    subtitleEl.innerText = 'Heute: Alles erledigt!';
+  }
 }
 
 function openWeather() {
@@ -602,6 +619,11 @@ function updateWidgetInGrid(id) {
   if (contentEl) contentEl.innerHTML = w.renderContent();
   if (previewEl) previewEl.textContent = w.getPreview();
   lucide.createIcons();
+  
+  // Update the summary subtitle in the header
+  if (['todo', 'chores', 'packages'].includes(id)) {
+    updateGreetingSubtitle();
+  }
 }
 
 function initSwipeNavigation() {
