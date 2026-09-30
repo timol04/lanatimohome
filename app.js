@@ -1655,7 +1655,7 @@ function renderPackagesList() {
     }
 
     const trackBtnHtml = item.tracking_number 
-      ? `<button onclick="openTrackingIframe('${escapeHtml(item.title)}', '${trackingUrl}')" style="margin-right:12px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 12px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Verfolgen</button>`
+      ? `<button onclick="window.open('${trackingUrl}', '_blank')" style="margin-right:12px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 12px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Verfolgen</button>`
       : '';
 
     el.innerHTML = `
@@ -1736,14 +1736,6 @@ async function clearDeliveredPackages() {
   if (toDelete.length > 0) {
     await db.from('packages').delete().in('id', toDelete);
   }
-}
-
-function openTrackingIframe(title, url) {
-  openOverlay(`Tracking: ${title}`, '#ffcc00', () => `
-    <div style="width:100%; height:calc(100vh - 120px); border-radius:12px; overflow:hidden; background:var(--bg-surface-bot);">
-      <iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>
-    </div>
-  `);
 }
 
 // ── Screensaver & Blackout ────────────────────────────────────
