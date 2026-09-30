@@ -1648,8 +1648,8 @@ function renderPackagesList() {
     let trackingUrl = '#';
     let courierName = item.courier.toUpperCase();
     if (item.tracking_number) {
-      if (item.courier === 'post') trackingUrl = `https://service.post.ch/ekp-web/ui/list?p_language=de&quickSearch=${item.tracking_number}`;
-      else if (item.courier === 'dhl') trackingUrl = `https://www.dhl.com/ch-de/home/tracking/tracking-express.html?submit=1&tracking-id=${item.tracking_number}`;
+      if (item.courier === 'post') trackingUrl = `https://www.post.ch/swisspost-tracking?formattedParcelCodes=${item.tracking_number}`;
+      else if (item.courier === 'dhl') trackingUrl = `https://www.dhl.com/ch-de/home/tracking.html?tracking-id=${item.tracking_number}`;
       else if (item.courier === 'dpd') trackingUrl = `https://tracking.dpd.de/status/de_CH/parcel/${item.tracking_number}`;
       else if (item.courier === 'planzer') trackingUrl = `https://planzer.ch/de/privatkunden/sendungsverfolgung/?tracking=${item.tracking_number}`;
     }
