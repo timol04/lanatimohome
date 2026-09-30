@@ -1616,7 +1616,7 @@ function openPackages() {
     
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; margin-top:24px;">
       <h3 style="color:var(--text); font-size:1.1rem; font-weight:600;">Unterwegs</h3>
-      <button class="btn-compact" style="height:32px; background:none; color:var(--text-muted); font-size:0.85rem;" onclick="clearDeliveredPackages()">
+      <button style="height:32px; padding:0 12px; border-radius:16px; display:flex; align-items:center; gap:6px; background:none; border:1px solid var(--border); color:var(--text-muted); font-size:0.85rem; cursor:pointer;" onclick="clearDeliveredPackages()">
         <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Erhaltene löschen
       </button>
     </div>
