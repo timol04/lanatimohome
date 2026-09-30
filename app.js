@@ -54,18 +54,7 @@ const WIDGETS = [
       return c === 0 ? 'Alles erledigt' : `${c} Aufgaben`;
     }
   },
-  {
-    id: 'wishlist', title: 'Anschaffungen', icon: 'shopping-bag', color: '#ff2d55', action: () => openWishlist(),
-    renderContent: () => {
-      if(wishlistItems.length === 0) return `<div class="mini-placeholder"><i data-lucide="shopping-bag"></i>Keine Wünsche</div>`;
-      const item = wishlistItems[0];
-      return `
-        <div style="font-size:0.9rem; color:var(--text); font-weight:500; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtml(item.title)}</div>
-        ${item.price ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px; font-weight:600;">${escapeHtml(item.price)}</div>` : ''}
-      `;
-    },
-    getPreview: () => wishlistItems.length > 0 ? `${wishlistItems.length} offene Wünsche` : 'Leer'
-  },
+
   { 
     id: 'calendar', title: 'Kalender', icon: 'calendar', color: 'var(--c-calendar)', action: () => openPlaceholderOverlay('Kalender', 'var(--c-calendar)', 'calendar'),
     renderContent: () => `<div class="mini-placeholder"><i data-lucide="calendar-clock"></i>Noch nicht bereit</div>`,
@@ -174,6 +163,18 @@ const WIDGETS = [
       const c = packagesItems.filter(i => !i.is_delivered).length;
       return c === 0 ? 'Alles da' : `${c} unterwegs`;
     }
+  },
+  {
+    id: 'wishlist', title: 'Anschaffungen', icon: 'shopping-bag', color: '#ff2d55', action: () => openWishlist(),
+    renderContent: () => {
+      if(wishlistItems.length === 0) return `<div class="mini-placeholder"><i data-lucide="shopping-bag"></i>Keine Wünsche</div>`;
+      const item = wishlistItems[0];
+      return `
+        <div style="font-size:0.9rem; color:var(--text); font-weight:500; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtml(item.title)}</div>
+        ${item.price ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px; font-weight:600;">${escapeHtml(item.price)}</div>` : ''}
+      `;
+    },
+    getPreview: () => wishlistItems.length > 0 ? `${wishlistItems.length} offene Wünsche` : 'Leer'
   }
 ];
 
