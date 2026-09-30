@@ -841,10 +841,10 @@ function renderShoppingList() {
       <div class="item-check" onclick="toggleShoppingItem('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
       ${itemContentHtml}
       
-      <div style="display:flex; align-items:center; margin-right:8px; gap:6px;">
-        <button class="item-delete" style="padding:4px 8px; width:auto; height:28px; background:var(--bg-input); border-radius:6px;" onclick="updateShoppingQuantity('${item.id}', -1)"><i data-lucide="minus" style="width:12px;height:12px;"></i></button>
-        <span style="font-size:0.9rem; font-weight:600; width:16px; text-align:center; color:var(--text);">${qty}</span>
-        <button class="item-delete" style="padding:4px 8px; width:auto; height:28px; background:var(--bg-input); border-radius:6px;" onclick="updateShoppingQuantity('${item.id}', 1)"><i data-lucide="plus" style="width:12px;height:12px;"></i></button>
+      <div style="display:flex; align-items:center; background:var(--bg-input); border:1px solid var(--border); border-radius:16px; padding:3px 4px; margin-right:12px; gap:6px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+        <button style="width:26px; height:26px; border-radius:13px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'" onclick="updateShoppingQuantity('${item.id}', -1)"><i data-lucide="minus" style="width:14px;height:14px;"></i></button>
+        <span style="font-size:0.95rem; font-weight:700; width:18px; text-align:center; color:var(--text);">${qty}</span>
+        <button style="width:26px; height:26px; border-radius:13px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'" onclick="updateShoppingQuantity('${item.id}', 1)"><i data-lucide="plus" style="width:14px;height:14px;"></i></button>
       </div>
 
       <button class="item-delete" onclick="deleteShoppingItem('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
@@ -2006,10 +2006,10 @@ function renderWishlist() {
       </div>
       ${item.url ? `<button onclick="window.open('${escapeHtml(item.url)}', '_blank')" style="margin-right:8px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 10px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i></button>` : ''}
       
-      <div style="display:flex; align-items:center; margin-right:8px; gap:6px;">
-        <button class="item-delete" style="padding:4px 8px; width:auto; height:28px; background:var(--bg-input); border-radius:6px;" onclick="updateWishQuantity(${item.id}, -1)"><i data-lucide="minus" style="width:12px;height:12px;"></i></button>
-        <span style="font-size:0.9rem; font-weight:600; width:16px; text-align:center; color:var(--text);">${qty}</span>
-        <button class="item-delete" style="padding:4px 8px; width:auto; height:28px; background:var(--bg-input); border-radius:6px;" onclick="updateWishQuantity(${item.id}, 1)"><i data-lucide="plus" style="width:12px;height:12px;"></i></button>
+      <div style="display:flex; align-items:center; background:var(--bg-input); border:1px solid var(--border); border-radius:16px; padding:3px 4px; margin-right:12px; gap:6px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+        <button style="width:26px; height:26px; border-radius:13px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'" onclick="updateWishQuantity(${item.id}, -1)"><i data-lucide="minus" style="width:14px;height:14px;"></i></button>
+        <span style="font-size:0.95rem; font-weight:700; width:18px; text-align:center; color:var(--text);">${qty}</span>
+        <button style="width:26px; height:26px; border-radius:13px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'" onclick="updateWishQuantity(${item.id}, 1)"><i data-lucide="plus" style="width:14px;height:14px;"></i></button>
       </div>
       
       <button class="item-delete" onclick="deleteWish(${item.id})">
