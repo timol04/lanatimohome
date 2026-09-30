@@ -1616,7 +1616,7 @@ function openPackages() {
     
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; margin-top:24px;">
       <h3 style="color:var(--text); font-size:1.1rem; font-weight:600;">Unterwegs</h3>
-      <button style="height:32px; padding:0 12px; border-radius:16px; display:flex; align-items:center; gap:6px; background:none; border:1px solid var(--border); color:var(--text-muted); font-size:0.85rem; cursor:pointer;" onclick="clearDeliveredPackages()">
+      <button style="height:32px; padding:0 12px; border-radius:16px; display:flex; align-items:center; gap:6px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); font-size:0.85rem; cursor:pointer; transition:all 0.2s;" onclick="clearDeliveredPackages()" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'">
         <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Erhaltene löschen
       </button>
     </div>
@@ -1655,7 +1655,7 @@ function renderPackagesList() {
     }
 
     const trackBtnHtml = item.tracking_number 
-      ? `<a href="${trackingUrl}" target="_blank" style="margin-right:12px; color:var(--text-muted); background:var(--bg-input); padding:6px 12px; border-radius:8px; text-decoration:none; display:flex; align-items:center; gap:6px; font-size:0.85rem;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Verfolgen</a>`
+      ? `<button onclick="openTrackingIframe('${escapeHtml(item.title)}', '${trackingUrl}')" style="margin-right:12px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 12px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Verfolgen</button>`
       : '';
 
     el.innerHTML = `
@@ -1736,6 +1736,14 @@ async function clearDeliveredPackages() {
   if (toDelete.length > 0) {
     await db.from('packages').delete().in('id', toDelete);
   }
+}
+
+function openTrackingIframe(title, url) {
+  openOverlay(`Tracking: ${title}`, '#ffcc00', () => `
+    <div style="width:100%; height:calc(100vh - 120px); border-radius:12px; overflow:hidden; background:var(--bg-surface-bot);">
+      <iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>
+    </div>
+  `);
 }
 
 // ── Screensaver & Blackout ────────────────────────────────────
