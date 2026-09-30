@@ -515,13 +515,26 @@ function updateGreetingSubtitle() {
   const subtitleEl = document.getElementById('greeting-subtitle');
   if (!subtitleEl) return;
 
+  const pendingShopping = shoppingItems.filter(i => !i.is_done).length;
   const pendingTodos = todosItems.filter(i => !i.is_done).length;
-  const pendingChores = choresItems.filter(i => !i.is_done).length;
+  
+  const myName = formatUserName(currentUser?.email?.split('@')[0]);
+  const pendingChores = choresItems.filter(i => {
+    if (i.is_done) return false;
+    // Wenn explizit dem anderen zugewiesen, nicht mitzählen
+    if (i.text.includes('(Timo)') && myName !== 'Timo') return false;
+    if (i.text.includes('(Lana)') && myName !== 'Lana') return false;
+    return true; // ansonsten meins oder für beide
+  }).length;
+
+  const pendingNotes = notesItems.length;
   const pendingPackages = packagesItems.filter(i => !i.is_delivered).length;
   
   let parts = [];
+  if (pendingShopping > 0) parts.push(`${pendingShopping} im Einkauf`);
   if (pendingTodos > 0) parts.push(`${pendingTodos} To-Do${pendingTodos > 1 ? 's' : ''}`);
   if (pendingChores > 0) parts.push(`${pendingChores} Ämtli`);
+  if (pendingNotes > 0) parts.push(`${pendingNotes} Notiz${pendingNotes > 1 ? 'en' : ''}`);
   if (pendingPackages > 0) parts.push(`${pendingPackages} Paket${pendingPackages > 1 ? 'e' : ''}`);
   
   if (parts.length > 0) {
@@ -621,7 +634,7 @@ function updateWidgetInGrid(id) {
   lucide.createIcons();
   
   // Update the summary subtitle in the header
-  if (['todo', 'chores', 'packages'].includes(id)) {
+  if (['shopping', 'todo', 'notes', 'chores', 'packages'].includes(id)) {
     updateGreetingSubtitle();
   }
 }
