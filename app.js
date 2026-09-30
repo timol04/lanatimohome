@@ -147,6 +147,9 @@ const WIDGETS = [
 
 // ── Bootstrap ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+
   const { data: { session } } = await db.auth.getSession();
   currentUser = session?.user ?? null;
 
@@ -251,6 +254,9 @@ function showDashboard() {
           <button onclick="window.location.reload(true)" title="Neu laden (Sync)" style="background:var(--bg-card); border:1px solid var(--border); color:var(--text-muted); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
             <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
           </button>
+          <button onclick="toggleTheme()" title="Theme wechseln" style="background:var(--bg-card); border:1px solid var(--border); color:var(--text-muted); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+            <i data-lucide="sun" id="theme-icon" style="width:14px;height:14px;"></i>
+          </button>
         </div>
       </div>
       <div class="header-center" id="header-center">
@@ -307,6 +313,19 @@ function showDashboard() {
   setInterval(loadWeather, 30 * 60000);
 
   lucide.createIcons();
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const nextTheme = current === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', nextTheme);
+  localStorage.setItem('theme', nextTheme);
+  
+  const icon = document.getElementById('theme-icon');
+  if (icon) {
+    icon.setAttribute('data-lucide', nextTheme === 'light' ? 'moon' : 'sun');
+    lucide.createIcons();
+  }
 }
 
 function startClock() {

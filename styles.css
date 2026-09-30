@@ -57,6 +57,22 @@
   --transition:   0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
+[data-theme="light"] {
+  --bg:           #F2F2F7;
+  --bg-input:     #E5E5EA;
+  --bg-surface:   #FFFFFF;
+  --bg-surface-top: #FFFFFF;
+  --bg-surface-bot: #F9F9F9;
+  
+  --text:         #1C1C1E;
+  --text-muted:   #8E8E93;
+  --border:       #E5E5EA;
+  
+  --shadow-surface: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  --highlight-top: none;
+}
+
 /* ── Base ────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
