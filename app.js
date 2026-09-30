@@ -1942,7 +1942,28 @@ function renderWishlist() {
     return;
   }
 
+  let total = 0;
+
   wishlistItems.forEach(item => {
+    // Total calculation for unpurchased items
+    if (!item.is_purchased && item.price) {
+      let s = item.price.replace(/['’\s]/g, '');
+      s = s.replace(/[^\d\.,]/g, '');
+      const lastDot = s.lastIndexOf('.');
+      const lastComma = s.lastIndexOf(',');
+      const decimalPos = Math.max(lastDot, lastComma);
+      
+      let val = 0;
+      if (decimalPos !== -1 && s.length - decimalPos <= 3) {
+        const intPart = s.substring(0, decimalPos).replace(/[\.,]/g, '');
+        const decPart = s.substring(decimalPos + 1);
+        val = parseFloat(`${intPart}.${decPart}`);
+      } else {
+        val = parseFloat(s.replace(/[\.,]/g, ''));
+      }
+      if (!isNaN(val)) total += val;
+    }
+
     const el = document.createElement('div');
     el.className = 'list-item ' + (item.is_purchased ? 'done' : '');
     
@@ -1969,6 +1990,17 @@ function renderWishlist() {
     `;
     list.appendChild(el);
   });
+
+  if (wishlistItems.length > 0) {
+    const totalEl = document.createElement('div');
+    totalEl.style = "margin-top:24px; padding-top:16px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;";
+    totalEl.innerHTML = `
+      <div style="font-weight:600; color:var(--text-muted); text-transform:uppercase; font-size:0.85rem; letter-spacing:0.5px;">Offenes Total</div>
+      <div style="font-weight:700; color:var(--text); font-size:1.2rem;">CHF ${total.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+    `;
+    list.appendChild(totalEl);
+  }
+
   lucide.createIcons();
 }
 
