@@ -1623,6 +1623,8 @@ function openPackages() {
     <div id="packages-list"></div>
   `, () => {
     document.getElementById('add-pkg-btn').addEventListener('click', addPackage);
+    document.getElementById('new-pkg-title').addEventListener('keydown', e => { if(e.key === 'Enter') addPackage(); });
+    document.getElementById('new-pkg-tracking').addEventListener('keydown', e => { if(e.key === 'Enter') addPackage(); });
     renderPackagesList();
   });
 }
