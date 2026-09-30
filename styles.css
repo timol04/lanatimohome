@@ -330,6 +330,14 @@ html, body {
   }
 }
 
+/* Drag & Drop Ghost (das Element, das man gerade zieht) */
+.sortable-ghost {
+  opacity: 0.3 !important;
+  transform: scale(0.95) !important;
+  box-shadow: none !important;
+  background: var(--bg-input) !important;
+}
+
 .widget-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
 .widget-icon {
   width: 36px; height: 36px; border-radius: 50%;

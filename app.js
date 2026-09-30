@@ -636,6 +636,50 @@ function renderWidgetGrid() {
     dot.className = `indicator-dot ${i === 0 ? 'active' : ''}`;
     indicators.appendChild(dot);
   }
+  
+  // Initialize Sortable for each page
+  if (typeof Sortable !== 'undefined') {
+    document.querySelectorAll('.carousel-page').forEach(pageEl => {
+      new Sortable(pageEl, {
+        group: 'dashboard',
+        animation: 150,
+        delay: 250, // Wichtig für Touch/Mobile: Erst nach 250ms halten wird gedraggt
+        delayOnTouchOnly: true,
+        ghostClass: 'sortable-ghost',
+        onEnd: function () {
+          const newOrder = [];
+          document.querySelectorAll('.widget').forEach(el => {
+            const id = el.id.replace('widget-', '');
+            newOrder.push(id);
+          });
+          
+          WIDGETS.sort((a, b) => {
+            let indexA = newOrder.indexOf(a.id);
+            let indexB = newOrder.indexOf(b.id);
+            if (indexA === -1) indexA = 999;
+            if (indexB === -1) indexB = 999;
+            return indexA - indexB;
+          });
+          
+          localStorage.setItem('lanatimohome_widget_order', JSON.stringify(newOrder));
+          renderWidgetGrid(); // Grid neu aufbauen (für Pagination-Ausgleich)
+          lucide.createIcons();
+        }
+      });
+    });
+  }
+}
+
+// Lade gespeicherte Reihenfolge beim Start
+const savedOrder = JSON.parse(localStorage.getItem('lanatimohome_widget_order'));
+if (savedOrder) {
+  WIDGETS.sort((a, b) => {
+    let indexA = savedOrder.indexOf(a.id);
+    let indexB = savedOrder.indexOf(b.id);
+    if (indexA === -1) indexA = 999;
+    if (indexB === -1) indexB = 999;
+    return indexA - indexB;
+  });
 }
 
 // Update specific widget without full re-render
