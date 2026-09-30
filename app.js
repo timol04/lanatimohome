@@ -52,9 +52,9 @@ const WIDGETS = [
     }
   },
   { 
-    id: 'wifi', title: 'WLAN', icon: 'wifi', color: '#5e5ce6', action: openWifi,
-    renderContent: () => `<div class="mini-placeholder"><i data-lucide="qr-code"></i>Gast-Zugang</div>`,
-    getPreview: () => 'Zum Scannen tippen'
+    id: 'calendar', title: 'Kalender', icon: 'calendar', color: 'var(--c-calendar)', action: () => openPlaceholderOverlay('Kalender', 'var(--c-calendar)', 'calendar'),
+    renderContent: () => `<div class="mini-placeholder"><i data-lucide="calendar-clock"></i>Noch nicht bereit</div>`,
+    getPreview: () => 'In Entwicklung'
   },
   { 
     id: 'weather', title: 'Wetter', icon: 'cloud-sun', color: 'var(--c-weather)', action: openWeather,
@@ -142,6 +142,11 @@ const WIDGETS = [
     id: 'trash', title: 'Abfall', icon: 'trash-2', color: 'var(--c-trash)', action: () => openPlaceholderOverlay('Abfallkalender', 'var(--c-trash)', 'trash-2'),
     renderContent: () => `<div class="mini-placeholder"><i data-lucide="calendar-days"></i>Kein Kalender</div>`,
     getPreview: () => 'In Entwicklung'
+  },
+  { 
+    id: 'wifi', title: 'WLAN', icon: 'wifi', color: '#5e5ce6', action: openWifi,
+    renderContent: () => `<div class="mini-placeholder"><i data-lucide="qr-code"></i>Gast-Zugang</div>`,
+    getPreview: () => 'Zum Scannen tippen'
   }
 ];
 
