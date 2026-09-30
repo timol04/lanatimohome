@@ -1688,12 +1688,14 @@ async function addPackage() {
 
   if (!title) return;
 
+  const authorStr = currentUser?.email?.split('@')[0] ?? 'Unbekannt';
+
   const newItem = { 
     id: Date.now(), 
     title, 
     courier, 
     tracking_number, 
-    author: currentUser,
+    author: authorStr,
     is_delivered: false, 
     created_at: new Date().toISOString() 
   };
@@ -1704,7 +1706,7 @@ async function addPackage() {
   updateWidgetInGrid('packages');
   renderPackagesList();
 
-  const { data, error } = await db.from('packages').insert([{ title, courier, tracking_number, author: currentUser, is_delivered: false }]).select();
+  const { data, error } = await db.from('packages').insert([{ title, courier, tracking_number, author: authorStr, is_delivered: false }]).select();
   if (error) {
     console.error("Fehler beim Speichern:", error);
     showToast("Fehler beim Speichern: " + error.message);
