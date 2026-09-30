@@ -836,9 +836,17 @@ function renderShoppingList() {
       itemContentHtml = `<div class="item-text">${escapeHtml(item.text)}</div>`;
     }
 
+    const qty = item.quantity || 1;
     el.innerHTML = `
       <div class="item-check" onclick="toggleShoppingItem('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
       ${itemContentHtml}
+      
+      <div style="display:flex; align-items:center; margin-right:8px; gap:6px;">
+        <button class="item-delete" style="padding:4px 8px; width:auto; height:28px; background:var(--bg-input); border-radius:6px;" onclick="updateShoppingQuantity('${item.id}', -1)"><i data-lucide="minus" style="width:12px;height:12px;"></i></button>
+        <span style="font-size:0.9rem; font-weight:600; width:16px; text-align:center; color:var(--text);">${qty}</span>
+        <button class="item-delete" style="padding:4px 8px; width:auto; height:28px; background:var(--bg-input); border-radius:6px;" onclick="updateShoppingQuantity('${item.id}', 1)"><i data-lucide="plus" style="width:12px;height:12px;"></i></button>
+      </div>
+
       <button class="item-delete" onclick="deleteShoppingItem('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
     `;
     list.appendChild(el);
@@ -854,11 +862,11 @@ async function addShoppingItem() {
   input.value = '';
   
   const tempId = 'temp-' + Date.now();
-  shoppingItems.push({ id: tempId, text, is_done: false, created_at: new Date().toISOString() });
+  shoppingItems.push({ id: tempId, text, is_done: false, quantity: 1, created_at: new Date().toISOString() });
   updateWidgetInGrid('shopping');
   renderShoppingList();
 
-  const { error } = await db.from('shopping_items').insert([{ text, is_done: false }]);
+  const { error } = await db.from('shopping_items').insert([{ text, is_done: false, quantity: 1 }]);
   if (error) showToast('Fehler beim Speichern');
   else loadShoppingData();
 }
@@ -870,6 +878,18 @@ async function toggleShoppingItem(id) {
   updateWidgetInGrid('shopping');
   renderShoppingList();
   await db.from('shopping_items').update({ is_done: item.is_done }).eq('id', id);
+}
+
+async function updateShoppingQuantity(id, delta) {
+  const item = shoppingItems.find(i => i.id === id);
+  if (!item) return;
+  const currentQty = item.quantity || 1;
+  const newQty = Math.max(1, currentQty + delta);
+  if (currentQty === newQty) return;
+  item.quantity = newQty;
+  updateWidgetInGrid('shopping');
+  renderShoppingList();
+  await db.from('shopping_items').update({ quantity: newQty }).eq('id', id);
 }
 
 async function deleteShoppingItem(id) {
@@ -1905,7 +1925,7 @@ async function addWishItem() {
   if (!title) return;
 
   const newItem = { 
-    id: Date.now(), title, url, price, color, image: lastScannedImageUrl, author: authorStr, is_purchased: false, created_at: new Date().toISOString() 
+    id: Date.now(), title, url, price, color, image: lastScannedImageUrl, author: authorStr, is_purchased: false, quantity: 1, created_at: new Date().toISOString() 
   };
   wishlistItems.unshift(newItem);
   
@@ -1920,7 +1940,7 @@ async function addWishItem() {
   renderWishlist();
 
   const { data, error } = await db.from('wishlist').insert([{ 
-    title, url, price, color, image: newItem.image, author: authorStr, is_purchased: false 
+    title, url, price, color, image: newItem.image, author: authorStr, is_purchased: false, quantity: 1 
   }]).select();
   
   if (error) {
@@ -1945,6 +1965,7 @@ function renderWishlist() {
   let total = 0;
 
   wishlistItems.forEach(item => {
+    const qty = item.quantity || 1;
     // Total calculation for unpurchased items
     if (!item.is_purchased && item.price) {
       let s = item.price.replace(/['’\s]/g, '');
@@ -1961,7 +1982,7 @@ function renderWishlist() {
       } else {
         val = parseFloat(s.replace(/[\.,]/g, ''));
       }
-      if (!isNaN(val)) total += val;
+      if (!isNaN(val)) total += (val * qty);
     }
 
     const el = document.createElement('div');
@@ -1983,7 +2004,14 @@ function renderWishlist() {
           ${infoParts.join(' · ')}
         </div>
       </div>
-      ${item.url ? `<button onclick="window.open('${escapeHtml(item.url)}', '_blank')" style="margin-right:12px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 12px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Öffnen</button>` : ''}
+      ${item.url ? `<button onclick="window.open('${escapeHtml(item.url)}', '_blank')" style="margin-right:8px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 10px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i></button>` : ''}
+      
+      <div style="display:flex; align-items:center; margin-right:8px; gap:6px;">
+        <button class="item-delete" style="padding:4px 8px; width:auto; height:28px; background:var(--bg-input); border-radius:6px;" onclick="updateWishQuantity(${item.id}, -1)"><i data-lucide="minus" style="width:12px;height:12px;"></i></button>
+        <span style="font-size:0.9rem; font-weight:600; width:16px; text-align:center; color:var(--text);">${qty}</span>
+        <button class="item-delete" style="padding:4px 8px; width:auto; height:28px; background:var(--bg-input); border-radius:6px;" onclick="updateWishQuantity(${item.id}, 1)"><i data-lucide="plus" style="width:12px;height:12px;"></i></button>
+      </div>
+      
       <button class="item-delete" onclick="deleteWish(${item.id})">
         <i data-lucide="trash-2"></i>
       </button>
@@ -2011,6 +2039,18 @@ async function toggleWish(id) {
   updateWidgetInGrid('wishlist');
   renderWishlist();
   await db.from('wishlist').update({ is_purchased: item.is_purchased }).eq('id', id);
+}
+
+async function updateWishQuantity(id, delta) {
+  const item = wishlistItems.find(i => i.id === id);
+  if (!item) return;
+  const currentQty = item.quantity || 1;
+  const newQty = Math.max(1, currentQty + delta);
+  if (currentQty === newQty) return;
+  item.quantity = newQty;
+  updateWidgetInGrid('wishlist');
+  renderWishlist();
+  await db.from('wishlist').update({ quantity: newQty }).eq('id', id);
 }
 
 async function deleteWish(id) {
