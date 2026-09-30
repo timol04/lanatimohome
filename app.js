@@ -1815,15 +1815,25 @@ function openWishlist() {
         <input type="url" id="new-wish-url" placeholder="Link zum Produkt einfügen (z.B. ikea.com/...)" />
         <button id="scan-wish-btn" class="btn-compact" style="width:auto; padding:0 12px; font-size:0.85rem; font-weight:600;"><i data-lucide="scan-line"></i> Scannen</button>
       </div>
-      <div id="wish-preview-box" style="display:none; background:var(--bg-input); padding:12px; border-radius:12px; border:1px solid var(--border); margin-top:8px;">
-        <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px; font-weight:600; text-transform:uppercase;">Scan-Ergebnis (Bitte prüfen/ergänzen)</div>
-        <img id="wish-preview-img" src="" style="width:100%; height:120px; object-fit:cover; border-radius:8px; display:none; margin-bottom:8px; background:var(--bg-surface-bot);" />
-        <input type="text" id="new-wish-title" placeholder="Titel (z.B. Sofa SÖDERHAMN)" class="input-row" style="width:100%; margin-bottom:6px; background:var(--bg-surface-bot);" />
-        <div style="display:flex; gap:6px;">
-          <input type="text" id="new-wish-price" placeholder="Preis (z.B. 499 CHF)" class="input-row" style="flex:1; background:var(--bg-surface-bot);" />
-          <input type="text" id="new-wish-color" placeholder="Farbe" class="input-row" style="flex:1; background:var(--bg-surface-bot);" />
+      <div id="wish-preview-box" style="display:none; background:var(--bg-card); padding:16px; border-radius:12px; border:1px solid var(--border); margin-top:12px;">
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Gefundenes Produkt (Bitte prüfen)</div>
+        
+        <img id="wish-preview-img" src="" style="width:100%; height:auto; max-height:220px; object-fit:contain; border-radius:8px; display:none; margin-bottom:12px; background:var(--bg-input);" />
+        
+        <div class="input-row" style="margin-bottom:8px;">
+          <input type="text" id="new-wish-title" placeholder="Titel (z.B. Sofa SÖDERHAMN)" style="width:100%;" />
         </div>
-        <button id="add-wish-btn" style="width:100%; margin-top:12px; height:40px; border-radius:12px; background:#ff2d55; color:white; border:none; font-weight:600; cursor:pointer;">Zur Wunschliste hinzufügen</button>
+        
+        <div style="display:flex; gap:8px;">
+          <div class="input-row" style="flex:1;">
+            <input type="text" id="new-wish-price" placeholder="Preis (z.B. 499 CHF)" style="width:100%;" />
+          </div>
+          <div class="input-row" style="flex:1;">
+            <input type="text" id="new-wish-color" placeholder="Farbe (optional)" style="width:100%;" />
+          </div>
+        </div>
+        
+        <button id="add-wish-btn" style="width:100%; margin-top:16px; height:44px; border-radius:12px; background:#ff2d55; color:white; border:none; font-weight:600; font-size:1rem; cursor:pointer; transition:opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">Zur Wunschliste hinzufügen</button>
       </div>
     </div>
     
