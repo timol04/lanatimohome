@@ -1702,7 +1702,10 @@ async function addPackage() {
   renderPackagesList();
 
   const { data, error } = await db.from('packages').insert([{ title, courier, tracking_number, is_delivered: false }]).select();
-  if (!error && data) {
+  if (error) {
+    console.error("Fehler beim Speichern:", error);
+    showToast("Fehler beim Speichern: " + error.message);
+  } else if (data) {
     packagesItems = packagesItems.map(i => i.id === newItem.id ? data[0] : i);
   }
 }
