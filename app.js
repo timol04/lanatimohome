@@ -18,11 +18,13 @@ let notesItems = [];
 let foodItems = [];
 let choresItems = [];
 let countdownsItems = [];
+let packagesItems = [];
 let currentCarouselPage = 0;
 let clockInterval = null;
 let foodChan = null;
 let choresChan = null;
 let countdownsChan = null;
+let packagesChan = null;
 let currentWeatherData = { temp: '--', icon: 'cloud-sun', desc: 'Laden...', high: '--', low: '--', daily: [] };
 
 // ── Widget-Konfiguration ──────────────────────────────────────
@@ -147,6 +149,18 @@ const WIDGETS = [
     id: 'wifi', title: 'WLAN', icon: 'wifi', color: '#5e5ce6', action: openWifi,
     renderContent: () => `<div class="mini-placeholder"><i data-lucide="qr-code"></i>Gast-Zugang</div>`,
     getPreview: () => 'Zum Scannen tippen'
+  },
+  { 
+    id: 'packages', title: 'Pakete', icon: 'package', color: '#ffcc00', action: openPackages,
+    renderContent: () => {
+      const pending = packagesItems.filter(i => !i.is_delivered);
+      if(pending.length === 0) return `<div class="mini-placeholder"><i data-lucide="package-check"></i>Nichts unterwegs</div>`;
+      return pending.slice(0, 3).map(i => `<div class="mini-list-item"><i data-lucide="truck"></i><span class="mini-text">${escapeHtml(i.title)}</span></div>`).join('');
+    },
+    getPreview: () => {
+      const c = packagesItems.filter(i => !i.is_delivered).length;
+      return c === 0 ? 'Alles da' : `${c} unterwegs`;
+    }
   }
 ];
 
@@ -318,6 +332,7 @@ function showDashboard() {
   loadFoodData();
   loadChoresData();
   loadCountdownsData();
+  loadPackagesData();
   
   loadTramDepartures();
   updateGreeting();
@@ -1555,6 +1570,168 @@ window.toggleChore = toggleChore;
 window.deleteChore = deleteChore;
 window.addCountdown = addCountdown;
 window.deleteCountdown = deleteCountdown;
+
+window.deleteCountdown = deleteCountdown;
+window.addPackage = addPackage;
+window.togglePackage = togglePackage;
+window.deletePackage = deletePackage;
+window.clearDeliveredPackages = clearDeliveredPackages;
+
+// ── Packages ───────────────────────────────────────────────────
+async function loadPackagesData() {
+  const { data, error } = await db.from('packages').select('*').order('created_at', { ascending: false });
+  if (!error && data) {
+    packagesItems = data;
+    updateWidgetInGrid('packages');
+  }
+  if (!packagesChan) {
+    packagesChan = db.channel('packages_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'packages' }, payload => {
+      if (payload.eventType === 'INSERT' && !packagesItems.find(i => i.id === payload.new.id)) packagesItems.unshift(payload.new);
+      if (payload.eventType === 'UPDATE') packagesItems = packagesItems.map(i => i.id === payload.new.id ? payload.new : i);
+      if (payload.eventType === 'DELETE') packagesItems = packagesItems.filter(i => i.id !== payload.old.id);
+      updateWidgetInGrid('packages');
+      if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('packages-list')) renderPackagesList();
+    }).subscribe();
+  }
+}
+
+function openPackages() {
+  openOverlay('Pakete', '#ffcc00', () => `
+    <div style="display:flex; flex-direction:column; gap:0;">
+      <div class="input-row" style="margin-bottom:8px;">
+        <input type="text" id="new-pkg-title" placeholder="Was hast du bestellt? (z.B. Digitec)" />
+        <button id="add-pkg-btn" class="btn-compact"><i data-lucide="plus"></i></button>
+      </div>
+      <div class="input-row">
+        <select id="new-pkg-courier" style="flex:1;">
+          <option value="post">Schweizerische Post</option>
+          <option value="dhl">DHL</option>
+          <option value="dpd">DPD</option>
+          <option value="planzer">Planzer</option>
+          <option value="andere">Andere</option>
+        </select>
+        <input type="text" id="new-pkg-tracking" placeholder="Tracking-Nummer (optional)" style="flex:2;" />
+      </div>
+    </div>
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; margin-top:24px;">
+      <h3 style="color:var(--text); font-size:1.1rem; font-weight:600;">Unterwegs</h3>
+      <button class="btn-compact" style="height:32px; background:none; color:var(--text-muted); font-size:0.85rem;" onclick="clearDeliveredPackages()">
+        <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Erhaltene löschen
+      </button>
+    </div>
+    <div id="packages-list"></div>
+  `, () => {
+    document.getElementById('add-pkg-btn').addEventListener('click', addPackage);
+    renderPackagesList();
+  });
+}
+
+function renderPackagesList() {
+  const list = document.getElementById('packages-list');
+  if (!list) return;
+
+  list.innerHTML = '';
+  if (packagesItems.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon"><i data-lucide="package-open"></i></div><h3>Keine Pakete</h3><p>Aktuell bist du wunschlos glücklich.</p></div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  packagesItems.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'list-item ' + (item.is_delivered ? 'done' : '');
+    
+    // Tracking URL Logic
+    let trackingUrl = '#';
+    let courierName = item.courier.toUpperCase();
+    if (item.tracking_number) {
+      if (item.courier === 'post') trackingUrl = `https://service.post.ch/ekp-web/ui/list?p_language=de&quickSearch=${item.tracking_number}`;
+      else if (item.courier === 'dhl') trackingUrl = `https://www.dhl.com/ch-de/home/tracking/tracking-express.html?submit=1&tracking-id=${item.tracking_number}`;
+      else if (item.courier === 'dpd') trackingUrl = `https://tracking.dpd.de/status/de_CH/parcel/${item.tracking_number}`;
+      else if (item.courier === 'planzer') trackingUrl = `https://planzer.ch/de/privatkunden/sendungsverfolgung/?tracking=${item.tracking_number}`;
+    }
+
+    const trackBtnHtml = item.tracking_number 
+      ? `<a href="${trackingUrl}" target="_blank" style="margin-right:12px; color:var(--text-muted); background:var(--bg-input); padding:6px 12px; border-radius:8px; text-decoration:none; display:flex; align-items:center; gap:6px; font-size:0.85rem;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Verfolgen</a>`
+      : '';
+
+    el.innerHTML = `
+      <div class="list-item-check" onclick="togglePackage(${item.id})">
+        <i data-lucide="${item.is_delivered ? 'check-square' : 'square'}"></i>
+      </div>
+      <div class="list-item-content">
+        <div style="font-weight:500; color:var(--text);">${escapeHtml(item.title)}</div>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+          ${courierName} ${item.tracking_number ? `· ${escapeHtml(item.tracking_number)}` : ''}
+        </div>
+      </div>
+      ${trackBtnHtml}
+      <button class="list-item-delete" onclick="deletePackage(${item.id})">
+        <i data-lucide="trash-2"></i>
+      </button>
+    `;
+    list.appendChild(el);
+  });
+  lucide.createIcons();
+}
+
+async function addPackage() {
+  const titleInput = document.getElementById('new-pkg-title');
+  const courierInput = document.getElementById('new-pkg-courier');
+  const trackInput = document.getElementById('new-pkg-tracking');
+  const title = titleInput.value.trim();
+  const courier = courierInput.value;
+  const tracking_number = trackInput.value.trim();
+
+  if (!title) return;
+
+  const newItem = { 
+    id: Date.now(), 
+    title, 
+    courier, 
+    tracking_number, 
+    is_delivered: false, 
+    created_at: new Date().toISOString() 
+  };
+  packagesItems.unshift(newItem);
+  titleInput.value = '';
+  trackInput.value = '';
+  
+  updateWidgetInGrid('packages');
+  renderPackagesList();
+
+  const { data, error } = await db.from('packages').insert([{ title, courier, tracking_number, is_delivered: false }]).select();
+  if (!error && data) {
+    packagesItems = packagesItems.map(i => i.id === newItem.id ? data[0] : i);
+  }
+}
+
+async function togglePackage(id) {
+  const item = packagesItems.find(i => i.id === id);
+  if (!item) return;
+  item.is_delivered = !item.is_delivered;
+  updateWidgetInGrid('packages');
+  renderPackagesList();
+  await db.from('packages').update({ is_delivered: item.is_delivered }).eq('id', id);
+}
+
+async function deletePackage(id) {
+  packagesItems = packagesItems.filter(i => i.id !== id);
+  updateWidgetInGrid('packages');
+  renderPackagesList();
+  await db.from('packages').delete().eq('id', id);
+}
+
+async function clearDeliveredPackages() {
+  const toDelete = packagesItems.filter(i => i.is_delivered).map(i => i.id);
+  packagesItems = packagesItems.filter(i => !i.is_delivered);
+  updateWidgetInGrid('packages');
+  renderPackagesList();
+  if (toDelete.length > 0) {
+    await db.from('packages').delete().in('id', toDelete);
+  }
+}
 
 // ── Screensaver & Blackout ────────────────────────────────────
 let screensaverTimer;
