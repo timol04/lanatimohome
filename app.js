@@ -756,7 +756,7 @@ function openShopping() {
     </div>
     <div class="list-toolbar">
       <span>Artikel</span>
-      <button id="clear-done-btn" class="btn-text" style="display:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen</button>
+      <button id="clear-done-btn" style="display:none; height:32px; padding:0 12px; border-radius:16px; align-items:center; gap:6px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); font-size:0.85rem; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'"><i data-lucide="trash-2" style="width:16px;height:16px;"></i> Erledigte löschen</button>
     </div>
     <div id="shopping-list"></div>
   `, () => {
@@ -890,7 +890,7 @@ function openTodos() {
     </div>
     <div class="list-toolbar">
       <span>Aufgaben</span>
-      <button id="clear-done-todo-btn" class="btn-text" style="display:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen</button>
+      <button id="clear-done-todo-btn" style="display:none; height:32px; padding:0 12px; border-radius:16px; align-items:center; gap:6px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); font-size:0.85rem; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'"><i data-lucide="trash-2" style="width:16px;height:16px;"></i> Erledigte löschen</button>
     </div>
     <div id="todo-list"></div>
   `, () => {
@@ -1260,7 +1260,7 @@ function openChores() {
     </div>
     <div class="list-toolbar">
       <span>Ämtli</span>
-      <button id="clear-done-chore-btn" class="btn-text" style="display:none;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Erledigte löschen</button>
+      <button id="clear-done-chore-btn" style="display:none; height:32px; padding:0 12px; border-radius:16px; align-items:center; gap:6px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); font-size:0.85rem; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'"><i data-lucide="trash-2" style="width:16px;height:16px;"></i> Erledigte löschen</button>
     </div>
     <div id="chores-list"></div>
   `, () => {
