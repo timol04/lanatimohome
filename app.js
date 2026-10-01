@@ -2217,6 +2217,16 @@ function startScreensaver() {
   if (!screensaver) {
     screensaver = document.createElement('div');
     screensaver.id = 'screensaver';
+    
+    // Verhindert das "Durchklicken" auf Widgets beim Aufwecken
+    const wakeUp = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      resetActivityTimers();
+    };
+    screensaver.addEventListener('touchstart', wakeUp, { passive: false });
+    screensaver.addEventListener('click', wakeUp);
+    
     document.body.appendChild(screensaver);
   }
   
@@ -2258,6 +2268,16 @@ function startBlackout() {
   if (!blackout) {
     blackout = document.createElement('div');
     blackout.id = 'blackout';
+
+    // Verhindert das "Durchklicken" auf Widgets beim Aufwecken
+    const wakeUp = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      resetActivityTimers();
+    };
+    blackout.addEventListener('touchstart', wakeUp, { passive: false });
+    blackout.addEventListener('click', wakeUp);
+
     document.body.appendChild(blackout);
   }
   blackout.classList.add('active');
