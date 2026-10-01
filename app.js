@@ -61,7 +61,7 @@ const WIDGETS = [
     getPreview: () => 'In Entwicklung'
   },
   { 
-    id: 'weather', title: 'Wetter', icon: 'cloud-sun', color: 'var(--c-weather)', action: openWeather,
+    id: 'weather', title: 'Wetter Region Basel', icon: 'cloud-sun', color: 'var(--c-weather)', action: openWeather,
     renderContent: () => `
       <div class="mini-weather-hero" style="flex-direction:column; align-items:flex-start; gap:4px;">
         <div style="display:flex; align-items:center; gap:8px; font-size:2.4rem; font-weight:300; color:var(--text);">
@@ -456,7 +456,7 @@ function getWeatherIconAndDesc(code, isDay = true) {
 
 async function loadWeather() {
   try {
-    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=47.55&longitude=7.53&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FZurich');
+    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=47.5596&longitude=7.5886&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FZurich');
     const data = await res.json();
     
     if (data && data.current_weather && data.daily) {
@@ -560,7 +560,7 @@ function updateGreetingSubtitle() {
 }
 
 function openWeather() {
-  openOverlay('7-Tage Wetter', 'var(--c-weather)', () => {
+  openOverlay('7-Tage Wetter Region Basel', 'var(--c-weather)', () => {
     if (!currentWeatherData.daily || currentWeatherData.daily.length === 0) {
       return `<div class="empty-state">
                 <div class="empty-icon"><i data-lucide="cloud-sun"></i></div>
