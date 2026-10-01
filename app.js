@@ -201,6 +201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (currentUser) {
     showDashboard();
+    loadScreensaverImages(); // Bilder aus Bucket laden
   } else {
     showLoginScreen();
   }
@@ -2133,11 +2134,36 @@ let screensaverInterval;
 const SCREENSAVER_MS = 5 * 60 * 1000;  // 5 Minuten
 const BLACKOUT_MS = 30 * 60 * 1000;    // 30 Minuten
 
-const placeholderImages = [
+let screensaverImages = [
   'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2560&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=2560&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=2560&auto=format&fit=crop'
 ];
+
+async function loadScreensaverImages() {
+  try {
+    const { data, error } = await db.storage.from('screensaver').list();
+    if (error || !data) return;
+    
+    // Filtere nur gültige Bilder (keine Ordner-Platzhalter etc.)
+    const validFiles = data.filter(f => f.name !== '.emptyFolderPlaceholder' && 
+      (f.name.toLowerCase().endsWith('.jpg') || f.name.toLowerCase().endsWith('.jpeg') || 
+       f.name.toLowerCase().endsWith('.png') || f.name.toLowerCase().endsWith('.webp') || 
+       f.name.toLowerCase().endsWith('.heic'))
+    );
+    
+    if (validFiles.length > 0) {
+      screensaverImages = validFiles.map(f => {
+        return db.storage.from('screensaver').getPublicUrl(f.name).data.publicUrl;
+      });
+      // Zufällige Reihenfolge mischen
+      screensaverImages.sort(() => Math.random() - 0.5);
+    }
+  } catch (err) {
+    console.warn("Konnte Screensaver Bilder aus Supabase nicht laden", err);
+  }
+}
+
 
 function resetActivityTimers() {
   clearTimeout(screensaverTimer);
@@ -2173,7 +2199,7 @@ function startScreensaver() {
   let currentIdx = 0;
   const img1 = document.createElement('img');
   img1.className = 'screensaver-img visible';
-  img1.src = placeholderImages[currentIdx];
+  img1.src = screensaverImages[currentIdx];
   screensaver.appendChild(img1);
   
   const timeEl = document.getElementById('screensaver-time');
@@ -2182,10 +2208,10 @@ function startScreensaver() {
 
   screensaverInterval = setInterval(() => {
     updateTime();
-    currentIdx = (currentIdx + 1) % placeholderImages.length;
+    currentIdx = (currentIdx + 1) % screensaverImages.length;
     const nextImg = document.createElement('img');
     nextImg.className = 'screensaver-img';
-    nextImg.src = placeholderImages[currentIdx];
+    nextImg.src = screensaverImages[currentIdx];
     screensaver.appendChild(nextImg);
     
     // Trigger reflow
