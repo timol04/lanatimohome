@@ -2153,11 +2153,16 @@ async function loadScreensaverImages() {
     );
     
     if (validFiles.length > 0) {
-      screensaverImages = validFiles.map(f => {
-        return db.storage.from('screensaver').getPublicUrl(f.name).data.publicUrl;
-      });
-      // Zufällige Reihenfolge mischen
-      screensaverImages.sort(() => Math.random() - 0.5);
+      const fileNames = validFiles.map(f => f.name);
+      
+      // Erstelle sichere Links, die nur für eingeloggte User abrufbar sind (10 Jahre gültig, damit das iPad nicht neu laden muss)
+      const { data: signedUrls, error: signError } = await db.storage.from('screensaver').createSignedUrls(fileNames, 315360000);
+      
+      if (!signError && signedUrls) {
+        screensaverImages = signedUrls.map(u => u.signedUrl);
+        // Zufällige Reihenfolge mischen
+        screensaverImages.sort(() => Math.random() - 0.5);
+      }
     }
   } catch (err) {
     console.warn("Konnte Screensaver Bilder aus Supabase nicht laden", err);
