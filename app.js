@@ -38,8 +38,9 @@ const WIDGETS = [
       return pending.slice(0, 3).map(i => `<div class="mini-list-item"><i data-lucide="circle"></i><span class="mini-text">${escapeHtml(i.text)}</span></div>`).join('');
     },
     getPreview: () => {
-      const c = shoppingItems.filter(i => !i.is_done).length;
-      return c === 0 ? 'Alles erledigt' : `${c} offene Artikel`;
+      const pending = shoppingItems.filter(i => !i.is_done);
+      const total = pending.reduce((sum, item) => sum + parseInt(item.quantity || 1), 0);
+      return total === 0 ? 'Alles erledigt' : `${total} Artikel`;
     }
   },
   { 
@@ -174,7 +175,10 @@ const WIDGETS = [
         ${item.price ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px; font-weight:600;">${escapeHtml(item.price)}</div>` : ''}
       `;
     },
-    getPreview: () => wishlistItems.length > 0 ? `${wishlistItems.length} offene Wünsche` : 'Leer'
+    getPreview: () => {
+      const total = wishlistItems.reduce((sum, item) => sum + parseInt(item.quantity || 1), 0);
+      return `${total} Wünsche`;
+    }
   }
 ];
 
