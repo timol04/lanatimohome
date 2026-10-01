@@ -96,11 +96,22 @@ const WIDGETS = [
   },
   { 
     id: 'notes', title: 'Notizen', icon: 'sticky-note', color: 'var(--c-notes)', action: openNotes,
+    hasBadge: () => {
+      if (notesItems.length === 0) return false;
+      const lastViewed = localStorage.getItem('last_viewed_notes');
+      if (!lastViewed) return true;
+      return new Date(notesItems[0].created_at) > new Date(lastViewed);
+    },
     renderContent: () => {
       if(notesItems.length === 0) return `<div class="mini-placeholder"><i data-lucide="message-square"></i>Keine Notizen</div>`;
       return `<div style="white-space:normal;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:var(--text);font-size:0.85rem;">${escapeHtml(notesItems[0].text)}</div>`;
     },
-    getPreview: () => notesItems.length > 0 ? `Von ${escapeHtml(formatUserName(notesItems[0].author))}` : 'Leer'
+    getPreview: () => {
+      if (notesItems.length === 0) return 'Leer';
+      const w = WIDGETS.find(x => x.id === 'notes');
+      const isNew = w.hasBadge && w.hasBadge();
+      return isNew ? 'Neue Notiz!' : `Von ${escapeHtml(formatUserName(notesItems[0].author))}`;
+    }
   },
   { 
     id: 'food', title: 'Essensplan', icon: 'utensils', color: 'var(--c-food)', action: openFoodPlan,
@@ -547,7 +558,8 @@ function updateGreetingSubtitle() {
     return true; // ansonsten meins oder für beide
   }).length;
 
-  const pendingNotes = notesItems.length;
+  const lastViewedNotes = localStorage.getItem('last_viewed_notes');
+  const pendingNotes = lastViewedNotes ? notesItems.filter(n => new Date(n.created_at) > new Date(lastViewedNotes)).length : notesItems.length;
   const pendingPackages = packagesItems.filter(i => !i.is_delivered).length;
   
   let parts = [];
@@ -626,6 +638,7 @@ function renderWidgetGrid() {
       widgetEl.innerHTML = `
         <div class="widget-header-row">
           <div class="widget-icon"><i data-lucide="${w.icon}"></i></div>
+          ${w.hasBadge && w.hasBadge() ? `<div style="width:12px; height:12px; border-radius:50%; background:var(--w-color); box-shadow: 0 0 10px var(--w-color);"></div>` : ''}
         </div>
         <div class="widget-content" id="content-${w.id}">${w.renderContent()}</div>
         <div class="widget-footer">
@@ -1116,6 +1129,10 @@ async function loadNotesData() {
 }
 
 function openNotes() {
+  localStorage.setItem('last_viewed_notes', new Date().toISOString());
+  updateGreetingSubtitle();
+  updateWidgetInGrid('notes');
+
   openOverlay('Notizen', 'var(--c-notes)', () => `
     <div class="input-row">
       <textarea id="new-note-input" placeholder="Neue Notiz schreiben..." rows="2"></textarea>
