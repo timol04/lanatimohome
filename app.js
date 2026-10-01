@@ -2183,7 +2183,8 @@ function resetActivityTimers() {
     setTimeout(() => screensaver.innerHTML = '', 2000); // Cleanup DOM after fade
   }
   if (blackout) blackout.classList.remove('active');
-  
+
+  // Starte die Timer NUR neu, wenn jemand eingeloggt ist!
   if (currentUser) {
     screensaverTimer = setTimeout(startScreensaver, SCREENSAVER_MS);
     blackoutTimer = setTimeout(startBlackout, BLACKOUT_MS);
