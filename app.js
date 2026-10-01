@@ -1897,6 +1897,7 @@ async function loadWishlistData() {
   const { data, error } = await db.from('wishlist').select('*').order('created_at', { ascending: false });
   if (!error && data) {
     wishlistItems = data;
+    updateWidgetInGrid('wishlist');
     if (currentUser) {
       db.channel('public:wishlist').on('postgres_changes', { event: '*', schema: 'public', table: 'wishlist' }, payload => {
         if (payload.eventType === 'INSERT' && !wishlistItems.find(i => i.id === payload.new.id)) wishlistItems.unshift(payload.new);
