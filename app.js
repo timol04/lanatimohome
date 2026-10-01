@@ -2205,7 +2205,7 @@ function resetActivityTimers() {
   
   if (screensaver) {
     screensaver.classList.remove('active');
-    setTimeout(() => screensaver.innerHTML = '', 4000); // Cleanup DOM after slow fade
+    setTimeout(() => screensaver.innerHTML = '', 1000); // Cleanup DOM after fade
   }
   if (blackout) blackout.classList.remove('active');
 
