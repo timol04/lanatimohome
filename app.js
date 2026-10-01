@@ -319,6 +319,9 @@ function showDashboard() {
           <button onclick="toggleTheme()" title="Theme wechseln" style="background:var(--bg-card); border:1px solid var(--border); color:var(--text-muted); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
             <i data-lucide="sun" id="theme-icon" style="width:14px;height:14px;"></i>
           </button>
+          <button onclick="event.stopPropagation(); startScreensaver()" title="Screensaver starten" style="background:var(--bg-card); border:1px solid var(--border); color:var(--text-muted); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+            <i data-lucide="image" style="width:14px;height:14px;"></i>
+          </button>
         </div>
       </div>
       <div class="header-center" id="header-center">
