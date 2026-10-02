@@ -1988,6 +1988,64 @@ async function scanWishUrl() {
       lastScannedImageUrl = '';
     }
   } catch (err) {
+    console.warn("Edge Function failed, trying client-side fallback...", err);
+    try {
+      // 1. Fallback: Corsproxy direkt vom iPad (umgeht Datacenter-Blockaden)
+      let html = '';
+      const corsRes = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+      if (corsRes.ok) html = await corsRes.text();
+      else {
+        // 2. Fallback: Allorigins
+        const allRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+        if (allRes.ok) html = (await allRes.json()).contents || '';
+      }
+
+      if (html) {
+        const getMeta = (regexList) => {
+          for (const regex of regexList) {
+            const match = html.match(regex);
+            if (match && match[1]) return match[1].replace(/&#x27;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
+          }
+          return '';
+        };
+
+        let title = getMeta([
+          /<meta[^>]*property="og:title"[^>]*content="([^"]+)"/i,
+          /<title[^>]*>([^<]+)<\/title>/i
+        ]);
+        if (title.includes('Galaxus') || title.includes('digitec')) title = title.split('- Galaxus')[0].split('| Galaxus')[0].split('- digitec')[0].trim();
+
+        let image = getMeta([
+          /<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i
+        ]);
+
+        let priceAmount = getMeta([/<meta[^>]*property="product:price:amount"[^>]*content="([^"]+)"/i]);
+        let price = '';
+        if (priceAmount) {
+          price = `CHF ${priceAmount}`;
+        } else {
+          const jsonLdPriceMatch = html.match(/"price"\s*:\s*"?(\d+[\.\,]\d{0,2})"?/i);
+          if (jsonLdPriceMatch && jsonLdPriceMatch[1]) price = `CHF ${jsonLdPriceMatch[1]}`;
+        }
+
+        document.getElementById('wish-preview-box').style.display = 'block';
+        document.getElementById('new-wish-title').value = title || '';
+        document.getElementById('new-wish-price').value = price || '';
+        const imgEl = document.getElementById('wish-preview-img');
+        if (image) {
+          imgEl.src = image;
+          imgEl.style.display = 'block';
+          lastScannedImageUrl = image;
+        } else {
+          imgEl.style.display = 'none';
+          lastScannedImageUrl = '';
+        }
+        return; // Success, skip throwing error
+      }
+    } catch (fallbackErr) {
+      console.warn("Client fallback also failed", fallbackErr);
+    }
+    
     console.error(err);
     showToast("Scan fehlgeschlagen. Bitte Felder manuell ausfüllen.");
     document.getElementById('wish-preview-box').style.display = 'block';
