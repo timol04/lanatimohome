@@ -1170,12 +1170,14 @@ function renderNotesList() {
     const date = new Date(item.created_at).toLocaleString('de-CH', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 
     el.innerHTML = `
-      <button class="item-delete" onclick="deleteNoteItem('${item.id}')" style="position:absolute; top:8px; right:8px;">
-        <i data-lucide="trash-2"></i>
-      </button>
-      <div class="note-header" style="margin-right: 32px;">
+      <div class="note-header" style="align-items:center;">
         <strong class="${isMe ? 'is-me' : ''}">${escapeHtml(formatUserName(item.author))}</strong>
-        <span style="margin-left: 8px; font-size: 0.85em; color:var(--text-muted);">${date}</span>
+        <div style="display:flex; align-items:center; gap:4px; margin-right:-8px; margin-top:-8px;">
+          <span>${date}</span>
+          <button class="item-delete" onclick="deleteNoteItem('${item.id}')" style="margin:0;">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>
       </div>
       <div class="note-body">${escapeHtml(item.text)}</div>
     `;
