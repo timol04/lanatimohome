@@ -1172,9 +1172,9 @@ function renderNotesList() {
     el.innerHTML = `
       <div class="note-header" style="align-items:center;">
         <strong class="${isMe ? 'is-me' : ''}">${escapeHtml(formatUserName(item.author))}</strong>
-        <div style="display:flex; align-items:center; gap:4px; margin-right:-8px; margin-top:-8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
           <span>${date}</span>
-          <button class="item-delete" onclick="deleteNoteItem('${item.id}')" style="margin:0;">
+          <button class="item-delete" onclick="deleteNoteItem('${item.id}')">
             <i data-lucide="trash-2"></i>
           </button>
         </div>

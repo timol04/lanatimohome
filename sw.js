@@ -1,4 +1,4 @@
-const CACHE = 'lanatimohome-v2';
+const CACHE = 'lanatimohome-v3';
 const ASSETS = [
   '/',
   '/index.html',
