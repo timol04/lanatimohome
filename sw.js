@@ -1,4 +1,4 @@
-const CACHE = 'lanatimohome-v1';
+const CACHE = 'lanatimohome-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -24,7 +24,15 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   // Pass through Supabase API calls (always network)
   if (e.request.url.includes('supabase.co')) return;
+
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    caches.match(e.request).then(cached => {
+      const fetchPromise = fetch(e.request).then(networkResponse => {
+        caches.open(CACHE).then(cache => cache.put(e.request, networkResponse.clone()));
+        return networkResponse;
+      }).catch(() => {}); // Fehler ignorieren, wenn offline
+      
+      return cached || fetchPromise;
+    })
   );
 });
