@@ -1170,12 +1170,16 @@ function renderNotesList() {
     const date = new Date(item.created_at).toLocaleString('de-CH', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 
     el.innerHTML = `
-      <div class="note-header">
-        <strong class="${isMe ? 'is-me' : ''}">${escapeHtml(formatUserName(item.author))}</strong>
-        <span>${date}</span>
+      <div class="note-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <strong class="${isMe ? 'is-me' : ''}">${escapeHtml(formatUserName(item.author))}</strong>
+          <span style="margin-left: 8px; font-size: 0.85em; color:var(--text-muted);">${date}</span>
+        </div>
+        <button onclick="deleteNoteItem('${item.id}')" style="background:none; border:none; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; padding: 6px; border-radius: 6px; margin-top:-4px; margin-right:-4px; transition: all 0.2s;" onmouseover="this.style.color='var(--c-trash)'; this.style.background='rgba(255,69,58,0.1)'" onmouseout="this.style.color='var(--text-muted)'; this.style.background='none'">
+          <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
+        </button>
       </div>
       <div class="note-body">${escapeHtml(item.text)}</div>
-      <button class="note-delete" onclick="deleteNoteItem('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
     `;
     list.appendChild(el);
   });
