@@ -2118,8 +2118,17 @@ function renderWishlist() {
   }
 
   let total = 0;
+  let prioTotals = { 0: 0, 1: 0, 2: 0, 3: 0 };
+  
+  const sortedItems = [...wishlistItems].sort((a, b) => {
+    const pA = a.prio || 0;
+    const pB = b.prio || 0;
+    const sortA = pA === 0 ? 4 : pA;
+    const sortB = pB === 0 ? 4 : pB;
+    return sortA - sortB;
+  });
 
-  wishlistItems.forEach(item => {
+  sortedItems.forEach(item => {
     const qty = item.quantity || 1;
     // Total calculation for unpurchased items
     if (!item.is_purchased && item.price) {
@@ -2137,7 +2146,11 @@ function renderWishlist() {
       } else {
         val = parseFloat(s.replace(/[\.,]/g, ''));
       }
-      if (!isNaN(val)) total += (val * qty);
+      if (!isNaN(val)) {
+        const lineTotal = val * qty;
+        total += lineTotal;
+        prioTotals[item.prio || 0] += lineTotal;
+      }
     }
 
     const el = document.createElement('div');
@@ -2184,11 +2197,21 @@ function renderWishlist() {
 
   if (wishlistItems.length > 0) {
     const totalEl = document.createElement('div');
-    totalEl.style = "margin-top:24px; padding-top:16px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;";
-    totalEl.innerHTML = `
-      <div style="font-weight:600; color:var(--text-muted); text-transform:uppercase; font-size:0.85rem; letter-spacing:0.5px;">Offenes Total</div>
-      <div style="font-weight:700; color:var(--text); font-size:1.2rem;">CHF ${total.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+    totalEl.style = "margin-top:24px; padding-top:16px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:8px;";
+    
+    let totalsHtml = '';
+    if (prioTotals[1] > 0) totalsHtml += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:var(--text-muted);"><span>Total Prio 1</span><span>CHF ${prioTotals[1].toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`;
+    if (prioTotals[2] > 0) totalsHtml += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:var(--text-muted);"><span>Total Prio 2</span><span>CHF ${prioTotals[2].toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`;
+    if (prioTotals[3] > 0) totalsHtml += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:var(--text-muted);"><span>Total Prio 3</span><span>CHF ${prioTotals[3].toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`;
+    if (prioTotals[0] > 0) totalsHtml += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:var(--text-muted);"><span>Total ohne Prio</span><span>CHF ${prioTotals[0].toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`;
+    
+    totalsHtml += `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; padding-top:12px; border-top:1px dashed var(--border);">
+        <div style="font-weight:600; color:var(--text-muted); text-transform:uppercase; font-size:0.85rem; letter-spacing:0.5px;">Gesamttotal</div>
+        <div style="font-weight:700; color:var(--text); font-size:1.2rem;">CHF ${total.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      </div>
     `;
+    totalEl.innerHTML = totalsHtml;
     list.appendChild(totalEl);
   }
 
