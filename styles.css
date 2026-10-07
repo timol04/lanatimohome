@@ -584,3 +584,39 @@ html, body {
   opacity: 1; pointer-events: auto;
   transition: opacity 4s ease-in;
 }
+
+.prio-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  background-color: var(--bg-card);
+  color: var(--text);
+  margin-right: 8px;
+  min-width: 60px;
+}
+.prio-select:focus {
+  outline: none;
+  border-color: var(--text);
+}
+.prio-select.prio-1 {
+  background-color: rgba(255, 69, 58, 0.15);
+  color: #ff453a;
+  border-color: rgba(255, 69, 58, 0.3);
+}
+.prio-select.prio-2 {
+  background-color: rgba(255, 214, 10, 0.15);
+  color: #ffd60a;
+  border-color: rgba(255, 214, 10, 0.3);
+}
+.prio-select.prio-3 {
+  background-color: rgba(48, 209, 88, 0.15);
+  color: #30d158;
+  border-color: rgba(48, 209, 88, 0.3);
+}

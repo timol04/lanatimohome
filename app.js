@@ -1939,6 +1939,15 @@ function openWishlist() {
           </div>
         </div>
         
+        <div class="input-row" style="margin-top:8px;">
+          <select id="new-wish-prio" class="prio-select" style="width:100%;">
+             <option value="0">Keine Priorität</option>
+             <option value="1">Prio 1 (Hoch - Rot)</option>
+             <option value="2">Prio 2 (Mittel - Gelb)</option>
+             <option value="3">Prio 3 (Niedrig - Grün)</option>
+          </select>
+        </div>
+        
         <button id="add-wish-btn" style="width:100%; margin-top:16px; height:44px; border-radius:12px; background:#ff2d55; color:white; border:none; font-weight:600; font-size:1rem; cursor:pointer; transition:opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">Zur Wunschliste hinzufügen</button>
       </div>
     </div>
@@ -2064,12 +2073,13 @@ async function addWishItem() {
   const title = document.getElementById('new-wish-title').value.trim();
   const price = document.getElementById('new-wish-price').value.trim();
   const color = document.getElementById('new-wish-color').value.trim();
+  const prio = parseInt(document.getElementById('new-wish-prio')?.value || '0');
   const authorStr = currentUser?.email?.split('@')[0] ?? 'Unbekannt';
 
   if (!title) return;
 
   const newItem = { 
-    id: Date.now(), title, url, price, color, image: lastScannedImageUrl, author: authorStr, is_purchased: false, quantity: 1, created_at: new Date().toISOString() 
+    id: Date.now(), title, url, price, color, prio, image: lastScannedImageUrl, author: authorStr, is_purchased: false, quantity: 1, created_at: new Date().toISOString() 
   };
   wishlistItems.unshift(newItem);
   
@@ -2077,6 +2087,7 @@ async function addWishItem() {
   document.getElementById('new-wish-title').value = '';
   document.getElementById('new-wish-price').value = '';
   document.getElementById('new-wish-color').value = '';
+  if(document.getElementById('new-wish-prio')) document.getElementById('new-wish-prio').value = '0';
   document.getElementById('wish-preview-box').style.display = 'none';
   lastScannedImageUrl = '';
   
@@ -2084,7 +2095,7 @@ async function addWishItem() {
   renderWishlist();
 
   const { data, error } = await db.from('wishlist').insert([{ 
-    title, url, price, color, image: newItem.image, author: authorStr, is_purchased: false, quantity: 1 
+    title, url, price, color, prio, image: newItem.image, author: authorStr, is_purchased: false, quantity: 1 
   }]).select();
   
   if (error) {
@@ -2143,11 +2154,19 @@ function renderWishlist() {
       </div>
       ${item.image ? `<img src="${escapeHtml(item.image)}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; margin-right:12px; border:1px solid var(--border);" />` : ''}
       <div class="list-item-content">
-        <div style="font-weight:500; color:var(--text);">${escapeHtml(item.title)}</div>
-        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+        <div style="font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.title)}</div>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
           ${infoParts.join(' · ')}
         </div>
       </div>
+      
+      <select class="prio-select prio-${item.prio || 0}" onchange="updateWishPrio(${item.id}, this.value)">
+        <option value="0" ${!item.prio || item.prio == 0 ? 'selected' : ''}>Prio</option>
+        <option value="1" ${item.prio == 1 ? 'selected' : ''}>Prio 1</option>
+        <option value="2" ${item.prio == 2 ? 'selected' : ''}>Prio 2</option>
+        <option value="3" ${item.prio == 3 ? 'selected' : ''}>Prio 3</option>
+      </select>
+      
       ${item.url ? `<button onclick="window.open('${escapeHtml(item.url)}', '_blank')" style="margin-right:8px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 10px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i></button>` : ''}
       
       <div style="display:flex; align-items:center; background:var(--bg-input); border:1px solid var(--border); border-radius:16px; padding:3px 4px; margin-right:12px; gap:6px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
@@ -2183,6 +2202,17 @@ async function toggleWish(id) {
   updateWidgetInGrid('wishlist');
   renderWishlist();
   await db.from('wishlist').update({ is_purchased: item.is_purchased }).eq('id', id);
+}
+
+async function updateWishPrio(id, newPrio) {
+  const item = wishlistItems.find(i => i.id === id);
+  if (!item) return;
+  newPrio = parseInt(newPrio);
+  if (item.prio === newPrio) return;
+  item.prio = newPrio;
+  updateWidgetInGrid('wishlist');
+  renderWishlist();
+  await db.from('wishlist').update({ prio: newPrio }).eq('id', id);
 }
 
 async function updateWishQuantity(id, delta) {

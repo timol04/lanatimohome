@@ -23,10 +23,10 @@ serve(async (req) => {
     let html = '';
     let microlinkData = null;
     
-    // Versuche direkten Fetch
+    // 1. Direkter Fetch
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept-Language': 'de-CH,de;q=0.9,en;q=0.8'
       }
     });
@@ -34,22 +34,35 @@ serve(async (req) => {
     if (response.ok) {
       html = await response.text();
     } else {
-      // Fallback für Seiten mit aggressivem Bot-Schutz (z.B. Galaxus, Digitec)
-      console.log(`Direct fetch failed (${response.status}), trying microlink fallback...`);
-      const mlResponse = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
-      if (mlResponse.ok) {
-        const mlJson = await mlResponse.json();
-        if (mlJson.status === 'success') {
-          microlinkData = mlJson.data;
+      console.log(`Direct fetch failed (${response.status}), trying corsproxy.io...`);
+      // 2. Fallback: Corsproxy
+      const corsRes = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+      if (corsRes.ok) {
+        html = await corsRes.text();
+      } else {
+        console.log(`Corsproxy failed (${corsRes.status}), trying allorigins...`);
+        // 3. Fallback: AllOrigins
+        const allRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+        if (allRes.ok) {
+          const allJson = await allRes.json();
+          html = allJson.contents || '';
+        } else {
+           console.log(`Allorigins failed, trying microlink...`);
+           // 4. Fallback: Microlink
+           const mlResponse = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+           if (mlResponse.ok) {
+             const mlJson = await mlResponse.json();
+             if (mlJson.status === 'success') microlinkData = mlJson.data;
+           }
         }
-      }
-      
-      if (!microlinkData) {
-        throw new Error(`Konnte Seite nicht laden (Status ${response.status}) und Fallback schlug fehl`);
       }
     }
 
-    // Regex-basiertes Auslesen der Meta-Tags (Die allererste Version, die 100% funktioniert hat)
+    if (!html && !microlinkData) {
+      throw new Error(`Alle Scraping-Versuche für diese URL (z.B. Galaxus) wurden durch Bot-Schutz blockiert.`);
+    }
+
+    // Regex-basiertes Auslesen der Meta-Tags
     // Wenn Microlink erfolgreich war, nutzen wir deren Daten
     if (microlinkData) {
       let title = microlinkData.title || '';
