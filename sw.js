@@ -1,10 +1,11 @@
-const CACHE = 'lanatimohome-v3';
+const CACHE = 'lanatimohome-v4';
+// Relative Pfade, damit es auch unter /lanatimohome/ auf GitHub Pages funktioniert
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/manifest.json'
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './manifest.json'
 ];
 
 self.addEventListener('install', e => {
@@ -22,17 +23,17 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Pass through Supabase API calls (always network)
-  if (e.request.url.includes('supabase.co')) return;
+  // Nur eigene Dateien cachen; Supabase, APIs und CDNs gehen immer direkt ans Netz
+  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== self.location.origin) return;
 
+  // Network-first: immer die neueste Version laden, Cache nur wenn offline
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fetchPromise = fetch(e.request).then(networkResponse => {
-        caches.open(CACHE).then(cache => cache.put(e.request, networkResponse.clone()));
-        return networkResponse;
-      }).catch(() => {}); // Fehler ignorieren, wenn offline
-      
-      return cached || fetchPromise;
-    })
+    fetch(e.request).then(networkResponse => {
+      if (networkResponse.ok) {
+        const copy = networkResponse.clone();
+        caches.open(CACHE).then(cache => cache.put(e.request, copy));
+      }
+      return networkResponse;
+    }).catch(() => caches.match(e.request).then(cached => cached || Response.error()))
   );
 });

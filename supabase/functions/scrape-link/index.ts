@@ -11,14 +11,29 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const jsonError = (message: string, status: number) =>
+    new Response(JSON.stringify({ error: message }), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
   try {
+    // Nur eingeloggte User dürfen scannen (sonst kann jeder die Function als offenen Proxy nutzen)
+    const userRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/user`, {
+      headers: {
+        Authorization: req.headers.get('Authorization') ?? '',
+        apikey: Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      }
+    });
+    if (!userRes.ok) return jsonError('Nicht angemeldet', 401);
+
     const { url } = await req.json();
-    if (!url) {
-      return new Response(JSON.stringify({ error: 'No URL provided' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    if (!url) return jsonError('No URL provided', 400);
+
+    // Nur normale Web-Links erlauben
+    let parsed: URL;
+    try { parsed = new URL(url); } catch { return jsonError('Ungültige URL', 400); }
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return jsonError('Ungültige URL', 400);
 
     let html = '';
     let microlinkData = null;

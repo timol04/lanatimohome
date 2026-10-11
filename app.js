@@ -22,10 +22,12 @@ let packagesItems = [];
 let wishlistItems = [];
 let currentCarouselPage = 0;
 let clockInterval = null;
+let dashboardIntervals = [];
 let foodChan = null;
 let choresChan = null;
 let countdownsChan = null;
 let packagesChan = null;
+let wishlistChan = null;
 let currentWeatherData = { temp: '--', icon: 'cloud-sun', desc: 'Laden...', high: '--', low: '--', daily: [] };
 
 // ── Widget-Konfiguration ──────────────────────────────────────
@@ -110,7 +112,7 @@ const WIDGETS = [
       if (notesItems.length === 0) return 'Leer';
       const w = WIDGETS.find(x => x.id === 'notes');
       const isNew = w.hasBadge && w.hasBadge();
-      return isNew ? 'Neue Notiz!' : `Von ${escapeHtml(formatUserName(notesItems[0].author))}`;
+      return isNew ? 'Neue Notiz!' : `Von ${formatUserName(notesItems[0].author)}`;
     }
   },
   { 
@@ -221,11 +223,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     showLoginScreen();
   }
 
-  db.auth.onAuthStateChange((_event, session) => {
+  // Nur auf echtes Ein-/Ausloggen reagieren. Token-Refreshes (ca. stündlich) würden
+  // sonst das ganze Dashboard neu aufbauen und offene Overlays schliessen.
+  db.auth.onAuthStateChange((event, session) => {
+    const wasLoggedIn = !!currentUser;
     currentUser = session?.user ?? null;
-    if (currentUser) {
+    if (currentUser && !wasLoggedIn) {
       showDashboard();
-    } else {
+      loadScreensaverImages();
+    } else if (!currentUser && wasLoggedIn) {
       showLoginScreen();
     }
   });
@@ -239,6 +245,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 function showLoginScreen() {
   if (realtimeChan) { realtimeChan.unsubscribe(); realtimeChan = null; }
   if (clockInterval) clearInterval(clockInterval);
+  dashboardIntervals.forEach(clearInterval);
+  dashboardIntervals = [];
 
   document.getElementById('app').innerHTML = `
     <div class="login-screen">
@@ -292,7 +300,7 @@ function showLoginScreen() {
 
     const { error } = await db.auth.signInWithPassword({ email, password });
     if (error) {
-      errorEl.innerHTML = error.message === 'Invalid login credentials' ? 'Fehler: Falsche Daten' : `Fehler: ${error.message}`;
+      errorEl.textContent = error.message === 'Invalid login credentials' ? 'Fehler: Falsche Daten' : `Fehler: ${error.message}`;
       errorEl.style.display = 'block';
       btn.disabled = false;
       btn.textContent = 'Anmelden';
@@ -371,13 +379,16 @@ function showDashboard() {
   loadTramDepartures();
   updateGreeting();
 
-  // Jede Minute die Trams aktualisieren
-  setInterval(loadTramDepartures, 60000);
-  setInterval(updateGreeting, 3600000); // Check greeting every hour
+  // Alte Intervalle stoppen, damit sie sich bei erneutem Aufruf nicht stapeln
+  dashboardIntervals.forEach(clearInterval);
+  dashboardIntervals = [
+    setInterval(loadTramDepartures, 60000),    // Jede Minute die Trams aktualisieren
+    setInterval(updateGreeting, 3600000),      // Check greeting every hour
+    setInterval(loadWeather, 30 * 60000),      // Wetter alle 30 Minuten aktualisieren
+    setInterval(loadScreensaverImages, 24 * 3600000) // Signierte Bild-Links täglich erneuern
+  ];
 
   loadWeather();
-  // Wetter alle 30 Minuten aktualisieren
-  setInterval(loadWeather, 30 * 60000);
 
   lucide.createIcons();
 }
@@ -406,6 +417,7 @@ function startClock() {
   };
   
   updateTime();
+  if (clockInterval) clearInterval(clockInterval);
   clockInterval = setInterval(updateTime, 1000);
 }
 
@@ -436,8 +448,8 @@ async function loadTramDepartures() {
         else if (diffMins < 60) timeDisplay = `in ${diffMins}'`;
         else timeDisplay = timeStr;
 
-        const line = dep.number;
-        const dest = dep.to;
+        const line = escapeHtml(dep.number ?? '');
+        const dest = escapeHtml(dep.to ?? '');
         html += `
           <div class="sbb-row" style="display:flex; align-items:center; justify-content:space-between; gap:16px; font-size:1.05rem; width:100%; margin-bottom:4px;">
             <div class="sbb-left" style="display:flex; align-items:center; gap:10px; flex:1;">
@@ -646,7 +658,7 @@ function renderWidgetGrid() {
         <div class="widget-content" id="content-${w.id}">${w.renderContent()}</div>
         <div class="widget-footer">
           <div class="widget-title">${w.title}</div>
-          <div class="widget-preview" id="preview-${w.id}">${w.getPreview()}</div>
+          <div class="widget-preview" id="preview-${w.id}">${escapeHtml(w.getPreview())}</div>
         </div>
       `;
       pageEl.appendChild(widgetEl);
@@ -1253,7 +1265,7 @@ function openFoodPlan() {
           <div class="input-row" style="margin-bottom:0; display:flex; gap:8px;">
             <input type="text" id="food-input-${day}" class="food-day-input" placeholder="Was gibt's?" value="${mealText}" onchange="saveFoodPlan('${day}', this.value)" style="flex:1; min-width:0; background:var(--bg-input); border:2px solid transparent; box-shadow:var(--shadow-inner); border-radius:var(--radius-sm); color:var(--text); padding:8px 12px; font-size:1rem; width:100%; -webkit-appearance:none; appearance:none;" />
             <button class="btn-compact" onclick="saveFoodPlanAndReload('${day}', document.getElementById('food-input-${day}').value)" title="Speichern" style="background:var(--bg-button); color:var(--text); border:none; border-radius:var(--radius-sm); width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;"><i data-lucide="check"></i></button>
-            ${mealText ? `<button class="btn-compact" onclick="addMealToShopping('${escapeHtml(mealText.replace(/'/g, "\\'"))}')" title="Zur Einkaufsliste hinzufügen" style="background:var(--bg-button); color:var(--text); border:none; border-radius:var(--radius-sm); width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;"><i data-lucide="shopping-cart"></i></button>` : ''}
+            ${mealText ? `<button class="btn-compact" onclick="addMealToShopping('${day}')" title="Zur Einkaufsliste hinzufügen" style="background:var(--bg-button); color:var(--text); border:none; border-radius:var(--radius-sm); width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;"><i data-lucide="shopping-cart"></i></button>` : ''}
           </div>
         </div>
       `;
@@ -1298,7 +1310,9 @@ async function saveFoodPlanAndReload(day, meal) {
   openFoodPlan();
 }
 
-async function addMealToShopping(meal) {
+async function addMealToShopping(day) {
+  const meal = foodItems.find(f => f.day === day)?.meal;
+  if (!meal) return;
   const ingredients = prompt(`Zutaten für ${meal} (kommagetrennt):`);
   if (ingredients === null) return; // User cancelled
   
@@ -1338,6 +1352,24 @@ async function loadChoresData() {
   }
 }
 
+// Liest "(bis TT.MM.)" bzw. "(bis TT.MM.JJJJ)" aus dem Ämtli-Text.
+// Ohne Jahr wird das Jahr gewählt, das am nächsten an heute liegt (wichtig über den Jahreswechsel).
+function parseChoreDueDate(text) {
+  const dateMatch = text.match(/\(bis (\d{2})\.(\d{2})\.?(\d{4}|\d{2})?\)/);
+  if (!dateMatch) return null;
+  let [match, d, m, y] = dateMatch;
+  const hasYear = !!y;
+  if (!y) y = new Date().getFullYear().toString();
+  else if (y.length === 2) y = '20' + y;
+  const date = new Date(Number(y), Number(m) - 1, Number(d));
+  if (!hasYear) {
+    const halfYear = 180 * 24 * 3600 * 1000;
+    if (date < new Date(Date.now() - halfYear)) date.setFullYear(date.getFullYear() + 1);
+    else if (date > new Date(Date.now() + halfYear)) date.setFullYear(date.getFullYear() - 1);
+  }
+  return { match, date };
+}
+
 async function autoResetChores() {
   const today = new Date();
   today.setHours(0,0,0,0);
@@ -1347,13 +1379,9 @@ async function autoResetChores() {
     if (item.is_done) {
       const isRecurring = item.text.includes('[Täglich]') || item.text.includes('[Wöchentlich]') || item.text.includes('[Monatlich]');
       if (isRecurring) {
-        const dateMatch = item.text.match(/\(bis (\d{2})\.(\d{2})\.?(\d{4}|\d{2})?\)/);
-        if (dateMatch) {
-          let [_, d, m, y] = dateMatch;
-          if (!y) y = new Date().getFullYear().toString();
-          else if (y.length === 2) y = '20' + y;
-          const dueDate = new Date(`${y}-${m}-${d}`);
-          dueDate.setHours(0,0,0,0);
+        const due = parseChoreDueDate(item.text);
+        if (due) {
+          const dueDate = due.date;
           
           if (today >= dueDate) {
             item.is_done = false;
@@ -1508,13 +1536,8 @@ async function toggleChore(id) {
     let nextDate = new Date();
     let newText = item.text;
     
-    const dateMatch = newText.match(/\(bis (\d{2})\.(\d{2})\.?(\d{4}|\d{2})?\)/);
-    if (dateMatch) {
-      let [_, d, m, y] = dateMatch;
-      if (!y) y = new Date().getFullYear().toString();
-      else if (y.length === 2) y = '20' + y;
-      nextDate = new Date(`${y}-${m}-${d}`);
-    }
+    const due = parseChoreDueDate(newText);
+    if (due) nextDate = due.date;
 
     if (newText.includes('[Täglich]')) {
       nextDate.setDate(nextDate.getDate() + 1);
@@ -1526,8 +1549,8 @@ async function toggleChore(id) {
 
     const nextStr = nextDate.toLocaleDateString('de-CH', {day: '2-digit', month: '2-digit'});
 
-    if (dateMatch) {
-      newText = newText.replace(dateMatch[0], `(bis ${nextStr})`);
+    if (due) {
+      newText = newText.replace(due.match, `(bis ${nextStr})`);
     } else {
       newText += ` (bis ${nextStr})`;
     }
@@ -1694,7 +1717,18 @@ function showToast(msg) {
 }
 
 function escapeHtml(str) {
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Nur http(s)-Links zulassen (verhindert javascript:-Links)
+function safeUrl(url) {
+  try {
+    let u;
+    try { u = new URL(url); } catch (e) { u = new URL('https://' + url); } // z.B. "ikea.com/..."
+    return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : '';
+  } catch (e) {
+    return '';
+  }
 }
 
 function formatUserName(rawName) {
@@ -1707,7 +1741,7 @@ function formatUserName(rawName) {
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW:', err));
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW:', err));
   }
 }
 
@@ -1801,16 +1835,17 @@ function renderPackagesList() {
     
     // Tracking URL Logic
     let trackingUrl = '#';
-    let courierName = item.courier.toUpperCase();
+    let courierName = escapeHtml(String(item.courier || '').toUpperCase());
     if (item.tracking_number) {
-      if (item.courier === 'post') trackingUrl = `https://www.post.ch/swisspost-tracking?formattedParcelCodes=${item.tracking_number}`;
-      else if (item.courier === 'dhl') trackingUrl = `https://www.dhl.com/ch-de/home/tracking.html?tracking-id=${item.tracking_number}`;
-      else if (item.courier === 'dpd') trackingUrl = `https://tracking.dpd.de/status/de_CH/parcel/${item.tracking_number}`;
-      else if (item.courier === 'planzer') trackingUrl = `https://planzer.ch/de/privatkunden/sendungsverfolgung/?tracking=${item.tracking_number}`;
+      const tn = encodeURIComponent(item.tracking_number);
+      if (item.courier === 'post') trackingUrl = `https://www.post.ch/swisspost-tracking?formattedParcelCodes=${tn}`;
+      else if (item.courier === 'dhl') trackingUrl = `https://www.dhl.com/ch-de/home/tracking.html?tracking-id=${tn}`;
+      else if (item.courier === 'dpd') trackingUrl = `https://tracking.dpd.de/status/de_CH/parcel/${tn}`;
+      else if (item.courier === 'planzer') trackingUrl = `https://planzer.ch/de/privatkunden/sendungsverfolgung/?tracking=${tn}`;
     }
 
     const trackBtnHtml = item.tracking_number 
-      ? `<button onclick="window.open('${trackingUrl}', '_blank')" style="margin-right:12px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 12px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Verfolgen</button>`
+      ? `<button data-url="${escapeHtml(trackingUrl)}" onclick="window.open(this.dataset.url, '_blank')" style="margin-right:12px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 12px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Verfolgen</button>`
       : '';
 
     el.innerHTML = `
@@ -1902,8 +1937,8 @@ async function loadWishlistData() {
   if (!error && data) {
     wishlistItems = data;
     updateWidgetInGrid('wishlist');
-    if (currentUser) {
-      db.channel('public:wishlist').on('postgres_changes', { event: '*', schema: 'public', table: 'wishlist' }, payload => {
+    if (currentUser && !wishlistChan) {
+      wishlistChan = db.channel('public:wishlist').on('postgres_changes', { event: '*', schema: 'public', table: 'wishlist' }, payload => {
         if (payload.eventType === 'INSERT' && !wishlistItems.find(i => i.id === payload.new.id)) wishlistItems.unshift(payload.new);
         if (payload.eventType === 'UPDATE') wishlistItems = wishlistItems.map(i => i.id === payload.new.id ? payload.new : i);
         if (payload.eventType === 'DELETE') wishlistItems = wishlistItems.filter(i => i.id !== payload.old.id);
@@ -2165,7 +2200,7 @@ function renderWishlist() {
       <div class="list-item-check" onclick="toggleWish(${item.id})">
         <i data-lucide="${item.is_purchased ? 'check-square' : 'square'}"></i>
       </div>
-      ${item.image ? `<img src="${escapeHtml(item.image)}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; margin-right:12px; border:1px solid var(--border);" />` : ''}
+      ${safeUrl(item.image) ? `<img src="${escapeHtml(safeUrl(item.image))}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; margin-right:12px; border:1px solid var(--border);" />` : ''}
       <div class="list-item-content">
         <div style="font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.title)}</div>
         <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
@@ -2180,7 +2215,7 @@ function renderWishlist() {
         <option value="3" ${item.prio == 3 ? 'selected' : ''}>Prio 3</option>
       </select>
       
-      ${item.url ? `<button onclick="window.open('${escapeHtml(item.url)}', '_blank')" style="margin-right:8px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 10px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i></button>` : ''}
+      ${safeUrl(item.url) ? `<button data-url="${escapeHtml(safeUrl(item.url))}" onclick="window.open(this.dataset.url, '_blank')" style="margin-right:8px; color:var(--text); background:var(--bg-card); border:1px solid var(--border); padding:6px 10px; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;"><i data-lucide="external-link" style="width:14px;height:14px;"></i></button>` : ''}
       
       <div style="display:flex; align-items:center; background:var(--bg-input); border:1px solid var(--border); border-radius:16px; padding:3px 4px; margin-right:12px; gap:6px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
         <button style="width:26px; height:26px; border-radius:13px; background:var(--bg-card); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--bg-card-bot)'" onmouseout="this.style.background='var(--bg-card)'" onclick="updateWishQuantity(${item.id}, -1)"><i data-lucide="minus" style="width:14px;height:14px;"></i></button>
@@ -2295,8 +2330,8 @@ async function loadScreensaverImages() {
     if (validFiles.length > 0) {
       const fileNames = validFiles.map(f => f.name);
       
-      // Erstelle sichere Links, die nur für eingeloggte User abrufbar sind (10 Jahre gültig, damit das iPad nicht neu laden muss)
-      const { data: signedUrls, error: signError } = await db.storage.from('screensaver').createSignedUrls(fileNames, 315360000);
+      // Erstelle sichere Links, die nur für eingeloggte User abrufbar sind (7 Tage gültig, werden täglich erneuert)
+      const { data: signedUrls, error: signError } = await db.storage.from('screensaver').createSignedUrls(fileNames, 7 * 24 * 3600);
       
       if (!signError && signedUrls) {
         screensaverImages = signedUrls.map(u => u.signedUrl);
