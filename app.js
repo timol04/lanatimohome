@@ -23,7 +23,6 @@ let wishlistItems = [];
 let budgetItems = [];
 let budgetChan = null;
 let budgetEditId = null;
-let budgetSelectedId = null;
 let currentCarouselPage = 0;
 let clockInterval = null;
 let dashboardIntervals = [];
@@ -836,6 +835,7 @@ function openOverlay(title, color, renderFn, onInit) {
 }
 
 function closeOverlay() {
+  document.getElementById('budget-modal')?.remove();
   document.getElementById('overlay-container').classList.remove('open');
 }
 
@@ -1771,33 +1771,16 @@ async function loadBudgetData() {
 
 function openBudget() {
   budgetEditId = null;
-  budgetSelectedId = null;
+  closeBudgetModal();
   openOverlay('Budget', 'var(--c-budget)', () => `
     <div id="budget-summary"></div>
-    <div class="budget-form">
-      <div class="input-row" style="margin-bottom:8px;">
-        <input type="text" id="budget-title" placeholder="Ausgabe (z.B. Miete)" />
-        <input type="number" id="budget-amount" inputmode="decimal" step="0.05" min="0" placeholder="CHF" style="flex:none; width:110px;" />
-      </div>
-      <div class="input-row" style="margin-bottom:8px;">
-        <select id="budget-kind" class="prio-select" style="flex:1;">
-          ${Object.entries(BUDGET_KINDS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
-        </select>
-        <select id="budget-interval" class="prio-select" style="flex:1;">
-          ${Object.entries(BUDGET_INTERVALS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
-        </select>
-      </div>
-      <div class="input-row">
-        <input type="text" id="budget-category" placeholder="Kategorie (optional)" />
-        <button id="budget-save-btn" class="btn-compact"><i data-lucide="plus"></i></button>
-        <button id="budget-cancel-btn" class="btn-compact" style="display:none;"><i data-lucide="x"></i></button>
-      </div>
+    <div class="list-toolbar">
+      <h3 style="color:var(--text); font-size:1.1rem; font-weight:600;">Ausgaben</h3>
+      <button id="budget-add-btn" class="btn-compact" aria-label="Ausgabe hinzufügen"><i data-lucide="plus"></i></button>
     </div>
     <div id="budget-list"></div>
   `, () => {
-    document.getElementById('budget-save-btn').addEventListener('click', saveBudgetEntry);
-    document.getElementById('budget-cancel-btn').addEventListener('click', resetBudgetForm);
-    document.getElementById('budget-amount').addEventListener('keydown', e => { if (e.key === 'Enter') saveBudgetEntry(); });
+    document.getElementById('budget-add-btn').addEventListener('click', () => openBudgetModal(null));
     renderBudgetList();
   });
 }
@@ -1856,57 +1839,79 @@ function renderBudgetList() {
     list.appendChild(head);
     items.forEach(item => {
       const el = document.createElement('div');
-      el.className = 'list-item budget-item' + (item.id === budgetSelectedId ? ' selected' : '');
+      el.className = 'list-item budget-item';
       el.style.alignItems = 'center';
-      el.style.flexWrap = 'wrap';
+      el.style.cursor = 'pointer';
       const sub = [item.category, BUDGET_INTERVALS[item.interval]].filter(Boolean).map(escapeHtml).join(' · ');
       el.innerHTML = `
-        <div class="list-item-content" data-select="${item.id}" style="cursor:pointer;">
+        <div class="list-item-content">
           <div style="font-weight:600;">${escapeHtml(item.title)}</div>
           <div style="font-size:0.75rem; color:var(--text-muted);">${sub}</div>
         </div>
-        <div class="budget-amount">${formatChf(item.amount)}</div>
-        ${item.id === budgetSelectedId ? `
-        <div class="budget-actions">
-          <button class="budget-action-btn" data-edit="${item.id}"><i data-lucide="pencil" style="width:16px;height:16px;"></i> Anpassen</button>
-          <button class="budget-action-btn danger" data-del="${item.id}" aria-label="Löschen"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>
-        </div>` : ''}`;
-      el.querySelector('[data-select]').addEventListener('click', () => {
-        budgetSelectedId = budgetSelectedId === item.id ? null : item.id;
-        renderBudgetList();
-      });
-      el.querySelector('.budget-amount').addEventListener('click', () => el.querySelector('[data-select]').click());
-      el.querySelector('[data-edit]')?.addEventListener('click', () => editBudgetEntry(item.id));
-      el.querySelector('[data-del]')?.addEventListener('click', () => deleteBudgetEntry(item.id));
+        <div class="budget-amount">${formatChf(item.amount)}</div>`;
+      el.addEventListener('click', () => openBudgetModal(item.id));
       list.appendChild(el);
     });
   });
   lucide.createIcons();
 }
 
-function resetBudgetForm() {
+function closeBudgetModal() {
+  document.getElementById('budget-modal')?.remove();
   budgetEditId = null;
-  ['budget-title', 'budget-amount', 'budget-category'].forEach(id => { document.getElementById(id).value = ''; });
-  document.getElementById('budget-kind').value = 'shared';
-  document.getElementById('budget-interval').value = 'monthly';
-  document.getElementById('budget-save-btn').innerHTML = '<i data-lucide="plus"></i>';
-  document.getElementById('budget-cancel-btn').style.display = 'none';
-  lucide.createIcons();
 }
 
-function editBudgetEntry(id) {
-  const item = budgetItems.find(i => i.id === id);
-  if (!item) return;
+function openBudgetModal(id) {
+  closeBudgetModal();
+  const item = id === null ? null : budgetItems.find(i => i.id === id);
+  if (id !== null && !item) return;
   budgetEditId = id;
-  document.getElementById('budget-title').value = item.title;
-  document.getElementById('budget-amount').value = item.amount;
-  document.getElementById('budget-kind').value = item.kind;
-  document.getElementById('budget-interval').value = item.interval;
-  document.getElementById('budget-category').value = item.category || '';
-  document.getElementById('budget-save-btn').innerHTML = '<i data-lucide="check"></i>';
-  document.getElementById('budget-cancel-btn').style.display = '';
+  const modal = document.createElement('div');
+  modal.id = 'budget-modal';
+  modal.className = 'budget-modal';
+  modal.innerHTML = `
+    <div class="budget-modal-card">
+      <div class="budget-modal-head">
+        <h3>${item ? 'Ausgabe bearbeiten' : 'Neue Ausgabe'}</h3>
+        <button class="item-delete" id="budget-modal-close" aria-label="Schliessen"><i data-lucide="x" style="width:18px;height:18px;"></i></button>
+      </div>
+      <div class="input-row" style="margin-bottom:8px;">
+        <input type="text" id="budget-title" placeholder="Ausgabe (z.B. Miete)" />
+      </div>
+      <div class="input-row" style="margin-bottom:8px;">
+        <input type="number" id="budget-amount" inputmode="decimal" step="0.05" min="0" placeholder="Betrag in CHF" />
+      </div>
+      <div class="input-row" style="margin-bottom:8px;">
+        <select id="budget-kind" class="prio-select" style="flex:1;">
+          ${Object.entries(BUDGET_KINDS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
+        </select>
+        <select id="budget-interval" class="prio-select" style="flex:1;">
+          ${Object.entries(BUDGET_INTERVALS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="input-row" style="margin-bottom:0;">
+        <input type="text" id="budget-category" placeholder="Kategorie (optional)" />
+      </div>
+      <div class="budget-modal-actions">
+        ${item ? `<button class="budget-action-btn danger" id="budget-modal-del" aria-label="Löschen"><i data-lucide="trash-2" style="width:18px;height:18px;"></i></button>` : ''}
+        <button class="budget-action-btn primary" id="budget-modal-save">${item ? 'Speichern' : 'Hinzufügen'}</button>
+      </div>
+    </div>`;
+  document.getElementById('overlay-container').appendChild(modal);
+  if (item) {
+    modal.querySelector('#budget-title').value = item.title;
+    modal.querySelector('#budget-amount').value = item.amount;
+    modal.querySelector('#budget-kind').value = item.kind;
+    modal.querySelector('#budget-interval').value = item.interval;
+    modal.querySelector('#budget-category').value = item.category || '';
+  }
+  modal.addEventListener('click', e => { if (e.target === modal) closeBudgetModal(); });
+  modal.querySelector('#budget-modal-close').addEventListener('click', closeBudgetModal);
+  modal.querySelector('#budget-modal-save').addEventListener('click', saveBudgetEntry);
+  modal.querySelector('#budget-modal-del')?.addEventListener('click', () => deleteBudgetEntry(id));
+  modal.querySelector('#budget-amount').addEventListener('keydown', e => { if (e.key === 'Enter') saveBudgetEntry(); });
   lucide.createIcons();
-  document.getElementById('overlay-content').scrollTo({ top: 0, behavior: 'smooth' });
+  if (!item) modal.querySelector('#budget-title').focus();
 }
 
 async function saveBudgetEntry() {
@@ -1924,8 +1929,7 @@ async function saveBudgetEntry() {
     category: document.getElementById('budget-category').value.trim() || null
   };
   const editing = budgetEditId;
-  budgetSelectedId = null;
-  resetBudgetForm();
+  closeBudgetModal();
   let error;
   if (editing !== null) {
     budgetItems = budgetItems.map(i => i.id === editing ? { ...i, ...row } : i);
@@ -1940,15 +1944,13 @@ async function saveBudgetEntry() {
 }
 
 async function deleteBudgetEntry(id) {
+  closeBudgetModal();
   budgetItems = budgetItems.filter(i => i.id !== id);
-  if (budgetEditId === id) resetBudgetForm();
-  budgetSelectedId = null;
   updateWidgetInGrid('budget');
   renderBudgetList();
   const { error } = await db.from('budget_entries').delete().eq('id', id);
   if (error) { showToast('Fehler beim Löschen'); loadBudgetData(); }
 }
-
 
 // ════════════════════════════════════════════════════════════════
 // UTILS
