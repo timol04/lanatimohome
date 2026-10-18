@@ -19,7 +19,9 @@ do $$ begin
   alter publication supabase_realtime add table public.budget_entries;
 exception when duplicate_object then null; end $$;
 
--- Startdaten aus Wohnungsbudget 2027.xlsx (alles monatlich)
+-- Startdaten aus Wohnungsbudget 2027.xlsx (alles monatlich, nur wenn die Tabelle leer ist)
+do $$ begin
+if not exists (select 1 from public.budget_entries) then
 insert into public.budget_entries (title, amount, kind, interval, category) values
   ('Miete', 1395.00, 'shared', 'monthly', 'Wohnen'),
   ('Nebenkosten (ohne Strom)', 100.00, 'shared', 'monthly', 'Wohnen'),
@@ -35,3 +37,5 @@ insert into public.budget_entries (title, amount, kind, interval, category) valu
   ('ÖV-Kosten', 57.00, 'timo', 'monthly', 'Mobilität'),
   ('Krankenkasse', 395.00, 'timo', 'monthly', 'Versicherung'),
   ('Persönliche Abos', 46.85, 'timo', 'monthly', 'Abos');
+end if;
+end $$;
