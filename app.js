@@ -23,6 +23,7 @@ let wishlistItems = [];
 let budgetItems = [];
 let budgetChan = null;
 let budgetEditId = null;
+let budgetSelectedId = null;
 let currentCarouselPage = 0;
 let clockInterval = null;
 let dashboardIntervals = [];
@@ -1770,6 +1771,7 @@ async function loadBudgetData() {
 
 function openBudget() {
   budgetEditId = null;
+  budgetSelectedId = null;
   openOverlay('Budget', 'var(--c-budget)', () => `
     <div id="budget-summary"></div>
     <div class="budget-form">
@@ -1854,18 +1856,28 @@ function renderBudgetList() {
     list.appendChild(head);
     items.forEach(item => {
       const el = document.createElement('div');
-      el.className = 'list-item';
+      el.className = 'list-item budget-item' + (item.id === budgetSelectedId ? ' selected' : '');
       el.style.alignItems = 'center';
+      el.style.flexWrap = 'wrap';
       const sub = [item.category, BUDGET_INTERVALS[item.interval]].filter(Boolean).map(escapeHtml).join(' · ');
       el.innerHTML = `
-        <div class="list-item-content" data-edit="${item.id}" style="cursor:pointer;">
+        <div class="list-item-content" data-select="${item.id}" style="cursor:pointer;">
           <div style="font-weight:600;">${escapeHtml(item.title)}</div>
           <div style="font-size:0.75rem; color:var(--text-muted);">${sub}</div>
         </div>
         <div class="budget-amount">${formatChf(item.amount)}</div>
-        <button class="item-delete" data-del="${item.id}"><i data-lucide="x" style="width:16px;height:16px;"></i></button>`;
-      el.querySelector('[data-edit]').addEventListener('click', () => editBudgetEntry(item.id));
-      el.querySelector('[data-del]').addEventListener('click', () => deleteBudgetEntry(item.id));
+        ${item.id === budgetSelectedId ? `
+        <div class="budget-actions">
+          <button class="budget-action-btn" data-edit="${item.id}"><i data-lucide="pencil" style="width:16px;height:16px;"></i> Anpassen</button>
+          <button class="budget-action-btn danger" data-del="${item.id}" aria-label="Löschen"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>
+        </div>` : ''}`;
+      el.querySelector('[data-select]').addEventListener('click', () => {
+        budgetSelectedId = budgetSelectedId === item.id ? null : item.id;
+        renderBudgetList();
+      });
+      el.querySelector('.budget-amount').addEventListener('click', () => el.querySelector('[data-select]').click());
+      el.querySelector('[data-edit]')?.addEventListener('click', () => editBudgetEntry(item.id));
+      el.querySelector('[data-del]')?.addEventListener('click', () => deleteBudgetEntry(item.id));
       list.appendChild(el);
     });
   });
@@ -1912,6 +1924,7 @@ async function saveBudgetEntry() {
     category: document.getElementById('budget-category').value.trim() || null
   };
   const editing = budgetEditId;
+  budgetSelectedId = null;
   resetBudgetForm();
   let error;
   if (editing !== null) {
@@ -1929,6 +1942,7 @@ async function saveBudgetEntry() {
 async function deleteBudgetEntry(id) {
   budgetItems = budgetItems.filter(i => i.id !== id);
   if (budgetEditId === id) resetBudgetForm();
+  budgetSelectedId = null;
   updateWidgetInGrid('budget');
   renderBudgetList();
   const { error } = await db.from('budget_entries').delete().eq('id', id);

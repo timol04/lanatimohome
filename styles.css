@@ -639,3 +639,7 @@ html, body {
 .budget-form { margin-bottom: var(--space-lg); }
 .budget-group-head { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: var(--space-lg) 0 var(--space-xs); }
 .budget-amount { font-weight: 600; white-space: nowrap; }
+.budget-item.selected { border-color: var(--c-budget); }
+.budget-actions { display: flex; gap: var(--space-xs); width: 100%; margin-top: var(--space-sm); }
+.budget-action-btn { flex: 1; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.9rem; cursor: pointer; }
+.budget-action-btn.danger { flex: none; width: 48px; color: var(--c-trash); background: rgba(255,69,58,0.1); border-color: transparent; }
