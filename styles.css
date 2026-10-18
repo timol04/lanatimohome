@@ -623,7 +623,7 @@ html, body {
 }
 
 /* ── Budget ─────────────────────────────────────────────── */
-.budget-split { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+.budget-split { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
 .budget-split-head { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: var(--space-sm); }
 .budget-split-val { color: var(--text); font-weight: 600; }
 .budget-split input[type=range] { width: 100%; accent-color: var(--c-budget); }
@@ -640,10 +640,10 @@ html, body {
 .budget-group-head { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: var(--space-lg) 0 var(--space-xs); }
 .budget-amount { font-weight: 600; white-space: nowrap; }
 .budget-modal { position: absolute; inset: 0; z-index: 110; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: var(--space-lg); }
-.budget-modal-card { width: 100%; max-width: 420px; max-height: 100%; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-surface); padding: var(--space-lg); }
+.budget-modal-card { width: 100%; max-width: 420px; max-height: 100%; overflow-y: auto; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-surface); padding: var(--space-lg); }
 .budget-modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); }
 .budget-modal-head h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); }
 .budget-modal-actions { display: flex; gap: var(--space-xs); margin-top: var(--space-lg); }
-.budget-action-btn { flex: 1; height: 44px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+.budget-action-btn { flex: 1; height: 44px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-surface); color: var(--text); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; }
 .budget-action-btn.primary { background: var(--c-budget); border-color: var(--c-budget); color: #000; }
 .budget-action-btn.danger { flex: none; width: 52px; color: var(--c-trash); background: rgba(255,69,58,0.1); border-color: transparent; }
