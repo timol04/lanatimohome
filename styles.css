@@ -33,6 +33,7 @@
   --c-home:       #64d2ff;
   --c-chores:     #F472B6; /* Sanfteres Pink für Ämtli-Plan */
   --c-countdown:  #ff9500; /* Countdowns */
+  --c-budget:     #30d158; /* Budget */
   --accent:       var(--c-todo); /* Global fallback */
   
   /* Consistent Radii */
@@ -620,3 +621,21 @@ html, body {
   color: #30d158;
   border-color: rgba(48, 209, 88, 0.3);
 }
+
+/* ── Budget ─────────────────────────────────────────────── */
+.budget-split { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+.budget-split-head { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: var(--space-sm); }
+.budget-split-val { color: var(--text); font-weight: 600; }
+.budget-split input[type=range] { width: 100%; accent-color: var(--c-budget); }
+.budget-presets { display: flex; gap: var(--space-xs); margin-top: var(--space-sm); }
+.budget-preset { flex: 1; height: 32px; border-radius: 16px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.85rem; cursor: pointer; }
+.budget-preset.active { background: var(--c-budget); border-color: var(--c-budget); color: #000; font-weight: 600; }
+.budget-cards { display: flex; gap: var(--space-sm); }
+.budget-card { flex: 1; background: color-mix(in srgb, var(--c-budget) 12%, transparent); border-radius: var(--radius-md); padding: var(--space-md); }
+.budget-card-label { font-size: 0.8rem; color: var(--text-muted); }
+.budget-card-val { font-size: 1.15rem; font-weight: 700; color: var(--c-budget); margin-top: 2px; }
+.budget-total { text-align: center; font-size: 0.85rem; color: var(--text-muted); margin: var(--space-sm) 0 var(--space-lg); }
+.budget-total strong { color: var(--text); }
+.budget-form { margin-bottom: var(--space-lg); }
+.budget-group-head { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: var(--space-lg) 0 var(--space-xs); }
+.budget-amount { font-weight: 600; white-space: nowrap; }

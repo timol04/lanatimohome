@@ -20,6 +20,9 @@ let choresItems = [];
 let countdownsItems = [];
 let packagesItems = [];
 let wishlistItems = [];
+let budgetItems = [];
+let budgetChan = null;
+let budgetEditId = null;
 let currentCarouselPage = 0;
 let clockInterval = null;
 let dashboardIntervals = [];
@@ -192,6 +195,17 @@ const WIDGETS = [
       const total = wishlistItems.reduce((sum, item) => sum + parseInt(item.quantity || 1), 0);
       return `${total} Wünsche`;
     }
+  },
+  {
+    id: 'budget', title: 'Budget', icon: 'wallet', color: 'var(--c-budget)', action: () => openBudget(),
+    renderContent: () => {
+      if (budgetItems.length === 0) return `<div class="mini-placeholder"><i data-lucide="wallet"></i>Keine Ausgaben</div>`;
+      const t = budgetTotals();
+      return `
+        <div class="mini-list-item"><i data-lucide="user"></i><span class="mini-text">Timo: ${formatChf(t.timo)}</span></div>
+        <div class="mini-list-item"><i data-lucide="user"></i><span class="mini-text">Lana: ${formatChf(t.lana)}</span></div>`;
+    },
+    getPreview: () => budgetItems.length === 0 ? 'Noch leer' : `${formatChf(budgetTotals().all)} / Monat`
   }
 ];
 
@@ -375,6 +389,7 @@ function showDashboard() {
   loadCountdownsData();
   loadPackagesData();
   loadWishlistData();
+  loadBudgetData();
   
   loadTramDepartures();
   updateGreeting();
@@ -1700,6 +1715,224 @@ async function deleteCountdown(id) {
   updateWidgetInGrid('countdown');
   renderCountdownsList();
   await db.from('countdowns').delete().eq('id', id);
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// BUDGET WIDGET
+// ════════════════════════════════════════════════════════════════
+const BUDGET_KINDS = { shared: 'Gemeinsam', timo: 'Timo', lana: 'Lana' };
+const BUDGET_INTERVALS = { monthly: 'Monatlich', yearly: 'Jährlich', once: 'Einmalig' };
+
+function getBudgetShare() {
+  const v = parseInt(localStorage.getItem('lanatimohome_budget_share'), 10);
+  return isNaN(v) ? 60 : Math.min(100, Math.max(0, v));
+}
+
+function formatChf(n) {
+  return 'CHF ' + (Number(n) || 0).toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Monatlicher Betrag: jährliche Posten /12, einmalige zählen nicht zum Monat
+function budgetMonthly(item) {
+  const a = Number(item.amount) || 0;
+  if (item.interval === 'yearly') return a / 12;
+  if (item.interval === 'once') return 0;
+  return a;
+}
+
+function budgetTotals() {
+  const share = getBudgetShare() / 100;
+  const t = { shared: 0, timo: 0, lana: 0, all: 0 };
+  budgetItems.forEach(i => { if (t[i.kind] !== undefined) t[i.kind] += budgetMonthly(i); });
+  const timo = t.timo + t.shared * share;
+  const lana = t.lana + t.shared * (1 - share);
+  return { shared: t.shared, ownTimo: t.timo, ownLana: t.lana, timo, lana, all: timo + lana };
+}
+
+async function loadBudgetData() {
+  const { data, error } = await db.from('budget_entries').select('*').order('created_at', { ascending: true });
+  if (!error && data) {
+    budgetItems = data;
+    updateWidgetInGrid('budget');
+    renderBudgetList();
+  }
+  if (!budgetChan) {
+    budgetChan = db.channel('budget_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'budget_entries' }, payload => {
+      if (payload.eventType === 'INSERT' && !budgetItems.find(i => i.id === payload.new.id)) budgetItems.push(payload.new);
+      if (payload.eventType === 'UPDATE') budgetItems = budgetItems.map(i => i.id === payload.new.id ? payload.new : i);
+      if (payload.eventType === 'DELETE') budgetItems = budgetItems.filter(i => i.id !== payload.old.id);
+      updateWidgetInGrid('budget');
+      renderBudgetList();
+    }).subscribe();
+  }
+}
+
+function openBudget() {
+  budgetEditId = null;
+  openOverlay('Budget', 'var(--c-budget)', () => `
+    <div id="budget-summary"></div>
+    <div class="budget-form">
+      <div class="input-row" style="margin-bottom:8px;">
+        <input type="text" id="budget-title" placeholder="Ausgabe (z.B. Miete)" />
+        <input type="number" id="budget-amount" inputmode="decimal" step="0.05" min="0" placeholder="CHF" style="flex:none; width:110px;" />
+      </div>
+      <div class="input-row" style="margin-bottom:8px;">
+        <select id="budget-kind" class="prio-select" style="flex:1;">
+          ${Object.entries(BUDGET_KINDS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
+        </select>
+        <select id="budget-interval" class="prio-select" style="flex:1;">
+          ${Object.entries(BUDGET_INTERVALS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="input-row">
+        <input type="text" id="budget-category" placeholder="Kategorie (optional)" />
+        <button id="budget-save-btn" class="btn-compact"><i data-lucide="plus"></i></button>
+        <button id="budget-cancel-btn" class="btn-compact" style="display:none;"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+    <div id="budget-list"></div>
+  `, () => {
+    document.getElementById('budget-save-btn').addEventListener('click', saveBudgetEntry);
+    document.getElementById('budget-cancel-btn').addEventListener('click', resetBudgetForm);
+    document.getElementById('budget-amount').addEventListener('keydown', e => { if (e.key === 'Enter') saveBudgetEntry(); });
+    renderBudgetList();
+  });
+}
+
+function renderBudgetSummary() {
+  const box = document.getElementById('budget-summary');
+  if (!box) return;
+  const t = budgetTotals();
+  const share = getBudgetShare();
+  box.innerHTML = `
+    <div class="budget-split">
+      <div class="budget-split-head">
+        <span>Gemeinsame Kosten</span>
+        <span class="budget-split-val">Timo ${share}% / Lana ${100 - share}%</span>
+      </div>
+      <input type="range" id="budget-share" min="0" max="100" step="5" value="${share}" />
+      <div class="budget-presets">
+        ${[50, 60, 70].map(p => `<button class="budget-preset ${p === share ? 'active' : ''}" data-share="${p}">${p}/${100 - p}</button>`).join('')}
+      </div>
+    </div>
+    <div class="budget-cards">
+      <div class="budget-card"><div class="budget-card-label">Timo</div><div class="budget-card-val">${formatChf(t.timo)}</div></div>
+      <div class="budget-card"><div class="budget-card-label">Lana</div><div class="budget-card-val">${formatChf(t.lana)}</div></div>
+    </div>
+    <div class="budget-total">Total pro Monat <strong>${formatChf(t.all)}</strong></div>`;
+  const setShare = v => {
+    localStorage.setItem('lanatimohome_budget_share', String(v));
+    updateWidgetInGrid('budget');
+    renderBudgetSummary();
+  };
+  box.querySelector('#budget-share').addEventListener('change', e => setShare(parseInt(e.target.value, 10)));
+  box.querySelector('#budget-share').addEventListener('input', e => {
+    const v = parseInt(e.target.value, 10);
+    box.querySelector('.budget-split-val').textContent = `Timo ${v}% / Lana ${100 - v}%`;
+  });
+  box.querySelectorAll('.budget-preset').forEach(b => b.addEventListener('click', () => setShare(parseInt(b.dataset.share, 10))));
+}
+
+function renderBudgetList() {
+  const list = document.getElementById('budget-list');
+  if (!list) return;
+  renderBudgetSummary();
+  list.innerHTML = '';
+  if (budgetItems.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon" style="background:color-mix(in srgb, var(--c-budget) 15%, transparent); color:var(--c-budget);"><i data-lucide="wallet"></i></div><h3>Keine Ausgaben</h3><p>Trag die erste Ausgabe ein.</p></div>`;
+    lucide.createIcons();
+    return;
+  }
+  ['shared', 'timo', 'lana'].forEach(kind => {
+    const items = budgetItems.filter(i => i.kind === kind);
+    if (!items.length) return;
+    const sum = items.reduce((s, i) => s + budgetMonthly(i), 0);
+    const head = document.createElement('div');
+    head.className = 'budget-group-head';
+    head.innerHTML = `<span>${BUDGET_KINDS[kind]}</span><span>${formatChf(sum)} / Monat</span>`;
+    list.appendChild(head);
+    items.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.style.alignItems = 'center';
+      const sub = [item.category, BUDGET_INTERVALS[item.interval]].filter(Boolean).map(escapeHtml).join(' · ');
+      el.innerHTML = `
+        <div class="list-item-content" data-edit="${item.id}" style="cursor:pointer;">
+          <div style="font-weight:600;">${escapeHtml(item.title)}</div>
+          <div style="font-size:0.75rem; color:var(--text-muted);">${sub}</div>
+        </div>
+        <div class="budget-amount">${formatChf(item.amount)}</div>
+        <button class="item-delete" data-del="${item.id}"><i data-lucide="x" style="width:16px;height:16px;"></i></button>`;
+      el.querySelector('[data-edit]').addEventListener('click', () => editBudgetEntry(item.id));
+      el.querySelector('[data-del]').addEventListener('click', () => deleteBudgetEntry(item.id));
+      list.appendChild(el);
+    });
+  });
+  lucide.createIcons();
+}
+
+function resetBudgetForm() {
+  budgetEditId = null;
+  ['budget-title', 'budget-amount', 'budget-category'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('budget-kind').value = 'shared';
+  document.getElementById('budget-interval').value = 'monthly';
+  document.getElementById('budget-save-btn').innerHTML = '<i data-lucide="plus"></i>';
+  document.getElementById('budget-cancel-btn').style.display = 'none';
+  lucide.createIcons();
+}
+
+function editBudgetEntry(id) {
+  const item = budgetItems.find(i => i.id === id);
+  if (!item) return;
+  budgetEditId = id;
+  document.getElementById('budget-title').value = item.title;
+  document.getElementById('budget-amount').value = item.amount;
+  document.getElementById('budget-kind').value = item.kind;
+  document.getElementById('budget-interval').value = item.interval;
+  document.getElementById('budget-category').value = item.category || '';
+  document.getElementById('budget-save-btn').innerHTML = '<i data-lucide="check"></i>';
+  document.getElementById('budget-cancel-btn').style.display = '';
+  lucide.createIcons();
+  document.getElementById('overlay-content').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function saveBudgetEntry() {
+  const title = document.getElementById('budget-title').value.trim();
+  const amount = parseFloat(document.getElementById('budget-amount').value.replace(',', '.'));
+  if (!title || isNaN(amount) || amount < 0) {
+    showToast('Bitte Titel und Betrag angeben');
+    return;
+  }
+  const row = {
+    title,
+    amount,
+    kind: document.getElementById('budget-kind').value,
+    interval: document.getElementById('budget-interval').value,
+    category: document.getElementById('budget-category').value.trim() || null
+  };
+  const editing = budgetEditId;
+  resetBudgetForm();
+  let error;
+  if (editing !== null) {
+    budgetItems = budgetItems.map(i => i.id === editing ? { ...i, ...row } : i);
+    updateWidgetInGrid('budget');
+    renderBudgetList();
+    ({ error } = await db.from('budget_entries').update(row).eq('id', editing));
+  } else {
+    ({ error } = await db.from('budget_entries').insert([{ ...row, author: currentUser?.email || null }]));
+  }
+  if (error) showToast('Fehler beim Speichern');
+  loadBudgetData();
+}
+
+async function deleteBudgetEntry(id) {
+  budgetItems = budgetItems.filter(i => i.id !== id);
+  if (budgetEditId === id) resetBudgetForm();
+  updateWidgetInGrid('budget');
+  renderBudgetList();
+  const { error } = await db.from('budget_entries').delete().eq('id', id);
+  if (error) { showToast('Fehler beim Löschen'); loadBudgetData(); }
 }
 
 
