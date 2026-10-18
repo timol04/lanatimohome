@@ -10,11 +10,14 @@ create table if not exists public.budget_entries (
   created_at timestamptz default now()
 );
 alter table public.budget_entries enable row level security;
+drop policy if exists "Household full access" on public.budget_entries;
 create policy "Household full access" on public.budget_entries for all to authenticated
   using (public.is_household()) with check (public.is_household());
 
 -- Realtime
-alter publication supabase_realtime add table public.budget_entries;
+do $$ begin
+  alter publication supabase_realtime add table public.budget_entries;
+exception when duplicate_object then null; end $$;
 
 -- Startdaten aus Wohnungsbudget 2027.xlsx (alles monatlich)
 insert into public.budget_entries (title, amount, kind, interval, category) values
