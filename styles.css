@@ -295,11 +295,11 @@ html, body {
 .carousel-page {
   flex: 0 0 100%; width: 100%; height: 100%; overflow-y: auto;
   padding: 32px var(--space-lg) 48px var(--space-lg);
-  display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: min-content;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: min-content;
   gap: var(--space-md); align-content: flex-start;
 }
 @media (min-width: 768px) {
-  .carousel-page { grid-template-columns: repeat(4, 1fr); overflow-y: visible; height: auto; }
+  .carousel-page { grid-template-columns: repeat(4, minmax(0, 1fr)); overflow-y: visible; height: auto; }
 }
 
 @media (max-width: 767px) {
