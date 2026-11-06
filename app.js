@@ -912,7 +912,7 @@ function renderShoppingList() {
 
   sorted.forEach(item => {
     const el = document.createElement('div');
-    el.className = `list-item ${item.is_done ? 'done' : ''}`;
+    el.className = `list-item ${item.is_done ? 'done' : ''} ${isEditOpen('shopping', item) ? 'expanded' : ''}`;
     let itemContentHtml = '';
     const isMenu = item.text.startsWith('[Menü]');
     if (isMenu) {
@@ -920,7 +920,7 @@ function renderShoppingList() {
       const title = parts[0];
       const ingredients = parts[1] || 'Keine Zutaten angegeben';
       itemContentHtml = `
-        <div class="list-item-content">
+        <div class="list-item-content clickable" onclick="toggleEdit('shopping','${item.id}')">
           <div style="font-weight:500; color:var(--text); display:flex; align-items:center; gap:6px;">
             <i data-lucide="chef-hat" style="width:14px;height:14px;"></i> ${escapeHtml(title)}
           </div>
@@ -931,7 +931,7 @@ function renderShoppingList() {
       `;
     } else {
       itemContentHtml = `
-        <div class="list-item-content">
+        <div class="list-item-content clickable" onclick="toggleEdit('shopping','${item.id}')">
           <div style="font-weight:500; color:var(--text);">${escapeHtml(item.text)}</div>
         </div>
       `;
@@ -955,6 +955,7 @@ function renderShoppingList() {
       </button>
     `;
     list.appendChild(el);
+    if (isEditOpen('shopping', item)) appendEditPanel(list, 'shopping', item);
   });
 
   lucide.createIcons();
@@ -964,16 +965,12 @@ async function addShoppingItem() {
   const input = document.getElementById('new-item-input');
   const text = input.value.trim();
   if (!text) return;
-  input.value = '';
-  
-  const tempId = 'temp-' + Date.now();
-  shoppingItems.push({ id: tempId, text, is_done: false, quantity: 1, created_at: new Date().toISOString() });
-  updateWidgetInGrid('shopping');
-  renderShoppingList();
 
-  const { error } = await db.from('shopping_items').insert([{ text, is_done: false, quantity: 1 }]);
-  if (error) showToast('Fehler beim Speichern');
-  else loadShoppingData();
+  const ok = await saveWithFeedback(document.getElementById('add-item-btn'), () => db.from('shopping_items').insert([{ text, is_done: false, quantity: 1 }]), 'Hinzugefügt');
+  if (!ok) return;
+  input.value = '';
+  await loadShoppingData();
+  renderShoppingList();
 }
 
 async function toggleShoppingItem(id) {
@@ -1076,13 +1073,14 @@ function renderTodoList() {
   }
   sorted.forEach(item => {
     const el = document.createElement('div');
-    el.className = `list-item ${item.is_done ? 'done' : ''}`;
+    el.className = `list-item ${item.is_done ? 'done' : ''} ${isEditOpen('todo', item) ? 'expanded' : ''}`;
     el.innerHTML = `
       <div class="item-check" onclick="toggleTodoItem('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
-      <div class="item-text">${escapeHtml(item.text)}</div>
+      <div class="item-text clickable" onclick="toggleEdit('todo','${item.id}')">${escapeHtml(item.text)}</div>
       <button class="item-delete" onclick="deleteTodoItem('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
     `;
     list.appendChild(el);
+    if (isEditOpen('todo', item)) appendEditPanel(list, 'todo', item);
   });
   
   lucide.createIcons();
@@ -1100,18 +1098,13 @@ async function addTodoItem() {
      const dateStr = dateObj.toLocaleDateString('de-CH', {day: '2-digit', month: '2-digit'});
      text = `${text} (bis ${dateStr})`;
   }
-  
+
+  const ok = await saveWithFeedback(document.getElementById('add-todo-btn'), () => db.from('todos').insert([{ text, is_done: false }]), 'Hinzugefügt');
+  if (!ok) return;
   input.value = '';
   dateInput.value = '';
-  
-  const tempId = 'temp-' + Date.now();
-  todosItems.push({ id: tempId, text, is_done: false, created_at: new Date().toISOString() });
-  updateWidgetInGrid('todo');
+  await loadTodosData();
   renderTodoList();
-
-  const { error } = await db.from('todos').insert([{ text, is_done: false }]);
-  if (error) showToast('Fehler beim Speichern');
-  else loadTodosData();
 }
 
 async function toggleTodoItem(id) {
@@ -1152,6 +1145,7 @@ async function loadNotesData() {
   if (!notesChan) {
     notesChan = db.channel('notes_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, payload => {
       if (payload.eventType === 'INSERT' && !notesItems.find(i => i.id === payload.new.id)) notesItems.unshift(payload.new);
+      if (payload.eventType === 'UPDATE') notesItems = notesItems.map(i => i.id === payload.new.id ? payload.new : i);
       if (payload.eventType === 'DELETE') notesItems = notesItems.filter(i => i.id !== payload.old.id);
       updateWidgetInGrid('notes');
       if (document.getElementById('overlay-container').classList.contains('open') && document.getElementById('notes-list')) renderNotesList();
@@ -1193,7 +1187,7 @@ function renderNotesList() {
   }
   notesItems.forEach(item => {
     const el = document.createElement('div');
-    el.className = 'note-card';
+    el.className = 'note-card' + (isEditOpen('notes', item) ? ' expanded' : '');
     const isMe = item.author === (currentUser?.email?.split('@')[0] ?? 'Unbekannt');
     const date = new Date(item.created_at).toLocaleString('de-CH', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 
@@ -1207,9 +1201,10 @@ function renderNotesList() {
           </button>
         </div>
       </div>
-      <div class="note-body">${escapeHtml(item.text)}</div>
+      <div class="note-body clickable" onclick="toggleEdit('notes','${item.id}')">${escapeHtml(item.text)}</div>
     `;
     list.appendChild(el);
+    if (isEditOpen('notes', item)) appendEditPanel(list, 'notes', item);
   });
   
   lucide.createIcons();
@@ -1219,17 +1214,13 @@ async function addNoteItem() {
   const input = document.getElementById('new-note-input');
   const text = input.value.trim();
   if (!text) return;
-  input.value = '';
   
   const author = currentUser?.email?.split('@')[0] ?? 'Unbekannt';
-  const tempId = 'temp-' + Date.now();
-  notesItems.unshift({ id: tempId, text, author, created_at: new Date().toISOString() });
-  updateWidgetInGrid('notes');
+  const ok = await saveWithFeedback(document.getElementById('add-note-btn'), () => db.from('notes').insert([{ text, author }]), 'Hinzugefügt');
+  if (!ok) return;
+  input.value = '';
+  await loadNotesData();
   renderNotesList();
-
-  const { error } = await db.from('notes').insert([{ text, author }]);
-  if (error) showToast('Fehler beim Speichern');
-  else loadNotesData();
 }
 
 async function deleteNoteItem(id) {
@@ -1475,13 +1466,14 @@ function renderChoresList() {
     const sorted = [...items.filter(i => !i.is_done), ...items.filter(i => i.is_done)];
     sorted.forEach(item => {
       const el = document.createElement('div');
-      el.className = `list-item ${item.is_done ? 'done' : ''}`;
+      el.className = `list-item ${item.is_done ? 'done' : ''} ${isEditOpen('chores', item) ? 'expanded' : ''}`;
       el.innerHTML = `
         <div class="item-check" onclick="toggleChore('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
-        <div class="item-text">${escapeHtml(item.text)}</div>
+        <div class="item-text clickable" onclick="toggleEdit('chores','${item.id}')">${escapeHtml(item.text)}</div>
         <button class="item-delete" onclick="deleteChore('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       `;
       list.appendChild(el);
+      if (isEditOpen('chores', item)) appendEditPanel(list, 'chores', item);
     });
   };
 
@@ -1524,22 +1516,17 @@ async function addChore() {
   const recurrence = recurrenceSelect.value;
   if (!text) return;
   
-  input.value = '';
-  assigneeSelect.value = '';
-  recurrenceSelect.value = 'Täglich'; // Zurück auf den neuen Default setzen
-  
   let finalText = text;
   if (assignee) finalText += ` (${assignee})`;
   if (recurrence) finalText += ` [${recurrence}]`;
-  
-  const tempId = 'temp-' + Date.now();
-  choresItems.unshift({ id: tempId, text: finalText, is_done: false, created_at: new Date().toISOString() });
-  updateWidgetInGrid('chores');
-  renderChoresList();
 
-  const { error } = await db.from('chores').insert([{ text: finalText, is_done: false }]);
-  if (error) showToast('Fehler beim Speichern');
-  else loadChoresData();
+  const ok = await saveWithFeedback(document.getElementById('add-chore-btn'), () => db.from('chores').insert([{ text: finalText, is_done: false }]), 'Hinzugefügt');
+  if (!ok) return;
+  input.value = '';
+  assigneeSelect.value = '';
+  recurrenceSelect.value = 'Täglich'; // Zurück auf den neuen Default setzen
+  await loadChoresData();
+  renderChoresList();
 }
 
 async function toggleChore(id) {
@@ -1673,19 +1660,20 @@ function renderCountdownsList() {
     const days = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
     
     const el = document.createElement('div');
-    el.className = `list-item`;
+    el.className = `list-item ${isEditOpen('countdown', item) ? 'expanded' : ''}`;
     el.style.alignItems = 'center';
     el.innerHTML = `
       <div style="background:color-mix(in srgb, var(--c-countdown) 15%, transparent); color:var(--c-countdown); border-radius:8px; padding:4px 12px; font-weight:bold; font-size:1.2rem; min-width:40px; text-align:center;">
         ${days}
       </div>
-      <div class="item-text" style="display:flex; flex-direction:column; justify-content:center;">
+      <div class="item-text clickable" style="display:flex; flex-direction:column; justify-content:center;" onclick="toggleEdit('countdown','${item.id}')">
         <div style="font-weight:600;">${escapeHtml(item.title)}</div>
         <div style="font-size:0.75rem; color:var(--text-muted);">${target.toLocaleDateString('de-CH')}</div>
       </div>
       <button class="item-delete" onclick="deleteCountdown('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
     `;
     list.appendChild(el);
+    if (isEditOpen('countdown', item)) appendEditPanel(list, 'countdown', item);
   });
   lucide.createIcons();
 }
@@ -1697,18 +1685,13 @@ async function addCountdown() {
     showToast('Bitte Titel und Datum angeben');
     return;
   }
-  
+
+  const ok = await saveWithFeedback(document.getElementById('add-cd-btn'), () => db.from('countdowns').insert([{ title, date: dateStr }]), 'Hinzugefügt');
+  if (!ok) return;
   document.getElementById('new-cd-title').value = '';
   document.getElementById('new-cd-date').value = '';
-  
-  const tempId = 'temp-' + Date.now();
-  countdownsItems.push({ id: tempId, title, date: dateStr, created_at: new Date().toISOString() });
-  updateWidgetInGrid('countdown');
+  await loadCountdownsData();
   renderCountdownsList();
-
-  const { error } = await db.from('countdowns').insert([{ title, date: dateStr }]);
-  if (error) showToast('Fehler beim Speichern');
-  else loadCountdownsData();
 }
 
 async function deleteCountdown(id) {
@@ -1955,6 +1938,126 @@ async function deleteBudgetEntry(id) {
 // ════════════════════════════════════════════════════════════════
 // UTILS
 // ════════════════════════════════════════════════════════════════
+// ── Gemeinsames Muster: Speichern mit Ladeanzeige ────────────
+// Sperrt den Button und zeigt einen Spinner, danach kurz Erfolg (grün) oder Fehler (rot).
+// work() muss ein Promise mit { error } liefern (Supabase-Antwort). Gibt true bei Erfolg zurück.
+async function saveWithFeedback(btn, work, okLabel = 'Gespeichert') {
+  if (!btn || btn.disabled) return false;
+  if (btn._orig === undefined) btn._orig = btn.innerHTML;
+  const hasText = btn.textContent.trim() !== '';
+  const set = (state, label) => {
+    const icons = { loading: 'loader', success: 'check', error: 'alert-circle' };
+    btn.dataset.state = state;
+    btn.disabled = state === 'loading';
+    btn.innerHTML = `<i data-lucide="${icons[state]}" ${state === 'loading' ? 'class="spin"' : ''}></i>${hasText ? ' ' + label : ''}`;
+    lucide.createIcons();
+  };
+  set('loading', 'Speichere...');
+  let error = null;
+  try {
+    ({ error } = await work());
+  } catch (e) {
+    error = e;
+  }
+  if (error) console.error('Fehler beim Speichern:', error);
+  if (!btn.isConnected) {
+    showToast(error ? 'Fehler beim Speichern' : 'Gespeichert');
+    return !error;
+  }
+  set(error ? 'error' : 'success', error ? 'Fehlgeschlagen – nochmal versuchen' : okLabel);
+  showToast(error ? 'Fehler beim Speichern' + (error.message ? ': ' + error.message : '') : 'Gespeichert');
+  setTimeout(() => {
+    if (!btn.isConnected || btn.dataset.state === 'loading') return;
+    btn.disabled = false;
+    btn.dataset.state = '';
+    btn.innerHTML = btn._orig;
+    lucide.createIcons();
+  }, error ? 2500 : 900);
+  return !error;
+}
+
+// ── Gemeinsames Muster: Eintrag anklicken, aufklappen, bearbeiten ──
+const EDIT_CONFIG = {
+  shopping:  { table: 'shopping_items', widget: 'shopping',  items: () => shoppingItems,   render: () => renderShoppingList(),   fields: [{ k: 'text', label: 'Artikel', type: 'textarea' }] },
+  todo:      { table: 'todos',          widget: 'todo',      items: () => todosItems,      render: () => renderTodoList(),       fields: [{ k: 'text', label: 'Aufgabe', type: 'text' }] },
+  chores:    { table: 'chores',         widget: 'chores',    items: () => choresItems,     render: () => renderChoresList(),     fields: [{ k: 'text', label: 'Ämtli (z.B. Bad putzen (Lana) [Täglich])', type: 'text' }] },
+  notes:     { table: 'notes',          widget: 'notes',     items: () => notesItems,      render: () => renderNotesList(),      fields: [{ k: 'text', label: 'Notiz', type: 'textarea' }] },
+  countdown: { table: 'countdowns',     widget: 'countdown', items: () => countdownsItems, render: () => renderCountdownsList(), fields: [{ k: 'title', label: 'Ereignis', type: 'text' }, { k: 'date', label: 'Datum', type: 'date' }] },
+  packages:  { table: 'packages',       widget: 'packages',  items: () => packagesItems,   render: () => renderPackagesList(),
+    fields: [{ k: 'title', label: 'Bestellung', type: 'text' }, { k: 'courier', label: 'Anbieter', type: 'select', options: { post: 'Schweizerische Post', dhl: 'DHL', dpd: 'DPD', planzer: 'Planzer', andere: 'Andere' } }, { k: 'tracking_number', label: 'Tracking-Nummer (optional)', type: 'text', optional: true }] },
+  wishlist:  { table: 'wishlist',       widget: 'wishlist',  items: () => wishlistItems,   render: () => renderWishlist(),
+    fields: [{ k: 'title', label: 'Titel', type: 'text' }, { k: 'url', label: 'Link (optional)', type: 'url', optional: true }, { k: 'price', label: 'Preis (z.B. 499 CHF)', type: 'text', optional: true }, { k: 'color', label: 'Farbe (optional)', type: 'text', optional: true }] }
+};
+
+let expandedEdit = null; // { key, id } – es ist immer nur ein Eintrag aufgeklappt
+const editDrafts = {};   // ungespeicherte Eingaben, überstehen ein Neuzeichnen (z.B. durch Realtime)
+
+function isEditOpen(key, item) {
+  return !!expandedEdit && expandedEdit.key === key && expandedEdit.id === String(item.id);
+}
+
+function toggleEdit(key, id) {
+  id = String(id);
+  const wasOpen = expandedEdit && expandedEdit.key === key && expandedEdit.id === id;
+  if (expandedEdit) delete editDrafts[expandedEdit.key + ':' + expandedEdit.id];
+  const prev = expandedEdit;
+  expandedEdit = wasOpen ? null : { key, id };
+  if (prev && prev.key !== key) EDIT_CONFIG[prev.key].render();
+  EDIT_CONFIG[key].render();
+}
+
+function appendEditPanel(list, key, item) {
+  const cfg = EDIT_CONFIG[key];
+  const draft = editDrafts[key + ':' + item.id] || {};
+  const panel = document.createElement('div');
+  panel.className = 'edit-panel';
+  const fieldsHtml = cfg.fields.map(f => {
+    const val = draft[f.k] !== undefined ? draft[f.k] : (item[f.k] ?? '');
+    if (f.type === 'textarea') return `<div class="input-row" style="margin-bottom:8px;"><textarea data-field="${f.k}" rows="3" placeholder="${escapeHtml(f.label)}">${escapeHtml(val)}</textarea></div>`;
+    if (f.type === 'select') return `<div class="input-row" style="margin-bottom:8px;"><select data-field="${f.k}" style="width:100%;">${Object.entries(f.options).map(([v, l]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
+    return `<div class="input-row" style="margin-bottom:8px;"><input type="${f.type}" data-field="${f.k}" placeholder="${escapeHtml(f.label)}" value="${escapeHtml(val)}" style="width:100%;" /></div>`;
+  }).join('');
+  panel.innerHTML = `
+    ${fieldsHtml}
+    <div class="budget-modal-actions" style="margin-top:4px;">
+      <button class="budget-action-btn" onclick="toggleEdit('${key}','${item.id}')">Abbrechen</button>
+      <button class="budget-action-btn primary" id="edit-save-btn" onclick="saveEdit('${key}','${item.id}')">Speichern</button>
+    </div>`;
+  panel.addEventListener('input', e => {
+    const k = e.target.dataset.field;
+    if (!k) return;
+    const dk = key + ':' + item.id;
+    editDrafts[dk] = editDrafts[dk] || {};
+    editDrafts[dk][k] = e.target.value;
+  });
+  panel.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') saveEdit(key, item.id); });
+  list.appendChild(panel);
+}
+
+async function saveEdit(key, id) {
+  id = String(id);
+  const cfg = EDIT_CONFIG[key];
+  const item = cfg.items().find(i => String(i.id) === id);
+  const btn = document.getElementById('edit-save-btn');
+  if (!item || !btn || btn.disabled) return;
+  const panel = btn.closest('.edit-panel');
+  const row = {};
+  for (const f of cfg.fields) {
+    const v = panel.querySelector(`[data-field="${f.k}"]`).value.trim();
+    if (!v && !f.optional) { showToast('Bitte alle Pflichtfelder ausfüllen'); return; }
+    row[f.k] = v;
+  }
+  const ok = await saveWithFeedback(btn, () => db.from(cfg.table).update(row).eq('id', item.id));
+  if (!ok) return; // Eingaben bleiben erhalten
+  const current = cfg.items().find(i => String(i.id) === id);
+  if (current) Object.assign(current, row);
+  delete editDrafts[key + ':' + id];
+  updateWidgetInGrid(cfg.widget);
+  setTimeout(() => {
+    if (expandedEdit && expandedEdit.key === key && expandedEdit.id === id) { expandedEdit = null; cfg.render(); }
+  }, 800);
+}
+
 let toastTimer = null;
 function showToast(msg) {
   const toast = document.getElementById('toast');
@@ -2080,7 +2183,7 @@ function renderPackagesList() {
 
   packagesItems.forEach(item => {
     const el = document.createElement('div');
-    el.className = 'list-item ' + (item.is_delivered ? 'done' : '');
+    el.className = 'list-item ' + (item.is_delivered ? 'done ' : '') + (isEditOpen('packages', item) ? 'expanded' : '');
     
     // Tracking URL Logic
     let trackingUrl = '#';
@@ -2101,7 +2204,7 @@ function renderPackagesList() {
       <div class="list-item-check" onclick="togglePackage(${item.id})">
         <i data-lucide="${item.is_delivered ? 'check-square' : 'square'}"></i>
       </div>
-      <div class="list-item-content">
+      <div class="list-item-content clickable" onclick="toggleEdit('packages','${item.id}')">
         <div style="font-weight:500; color:var(--text);">${escapeHtml(item.title)}</div>
         <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
           ${courierName} ${item.tracking_number ? `· ${escapeHtml(item.tracking_number)}` : ''} · ${escapeHtml(formatUserName(item.author))}
@@ -2113,6 +2216,7 @@ function renderPackagesList() {
       </button>
     `;
     list.appendChild(el);
+    if (isEditOpen('packages', item)) appendEditPanel(list, 'packages', item);
   });
   lucide.createIcons();
 }
@@ -2128,30 +2232,12 @@ async function addPackage() {
   if (!title) return;
 
   const authorStr = currentUser?.email?.split('@')[0] ?? 'Unbekannt';
-
-  const newItem = { 
-    id: Date.now(), 
-    title, 
-    courier, 
-    tracking_number, 
-    author: authorStr,
-    is_delivered: false, 
-    created_at: new Date().toISOString() 
-  };
-  packagesItems.unshift(newItem);
+  const ok = await saveWithFeedback(document.getElementById('add-pkg-btn'), () => db.from('packages').insert([{ title, courier, tracking_number, author: authorStr, is_delivered: false }]), 'Hinzugefügt');
+  if (!ok) return;
   titleInput.value = '';
   trackInput.value = '';
-  
-  updateWidgetInGrid('packages');
+  await loadPackagesData();
   renderPackagesList();
-
-  const { data, error } = await db.from('packages').insert([{ title, courier, tracking_number, author: authorStr, is_delivered: false }]).select();
-  if (error) {
-    console.error("Fehler beim Speichern:", error);
-    showToast("Fehler beim Speichern: " + error.message);
-  } else if (data) {
-    packagesItems = packagesItems.map(i => i.id === newItem.id ? data[0] : i);
-  }
 }
 
 async function togglePackage(id) {
@@ -2353,6 +2439,7 @@ async function scanWishUrl() {
 }
 
 async function addWishItem() {
+  const btn = document.getElementById('add-wish-btn');
   const url = document.getElementById('new-wish-url').value.trim();
   const title = document.getElementById('new-wish-title').value.trim();
   const price = document.getElementById('new-wish-price').value.trim();
@@ -2360,34 +2447,23 @@ async function addWishItem() {
   const prio = parseInt(document.getElementById('new-wish-prio')?.value || '0');
   const authorStr = currentUser?.email?.split('@')[0] ?? 'Unbekannt';
 
-  if (!title) return;
-
-  const newItem = { 
-    id: Date.now(), title, url, price, color, prio, image: lastScannedImageUrl, author: authorStr, is_purchased: false, quantity: 1, created_at: new Date().toISOString() 
-  };
-  wishlistItems.unshift(newItem);
-  
-  document.getElementById('new-wish-url').value = '';
-  document.getElementById('new-wish-title').value = '';
-  document.getElementById('new-wish-price').value = '';
-  document.getElementById('new-wish-color').value = '';
-  if(document.getElementById('new-wish-prio')) document.getElementById('new-wish-prio').value = '0';
-  document.getElementById('wish-preview-box').style.display = 'none';
-  lastScannedImageUrl = '';
-  
-  updateWidgetInGrid('wishlist');
-  renderWishlist();
-
-  const { data, error } = await db.from('wishlist').insert([{ 
-    title, url, price, color, prio, image: newItem.image, author: authorStr, is_purchased: false, quantity: 1 
-  }]).select();
-  
-  if (error) {
-    console.error("Fehler beim Speichern:", error);
-    showToast("Fehler beim Speichern: " + error.message);
-  } else if (data) {
-    wishlistItems = wishlistItems.map(i => i.id === newItem.id ? data[0] : i);
+  if (!title) {
+    showToast('Bitte einen Titel angeben');
+    return;
   }
+
+  const ok = await saveWithFeedback(btn, () => db.from('wishlist').insert([{ 
+    title, url, price, color, prio, image: lastScannedImageUrl, author: authorStr, is_purchased: false, quantity: 1 
+  }]), 'Hinzugefügt');
+  if (!ok) return; // Eingaben bleiben erhalten
+
+  ['url', 'title', 'price', 'color'].forEach(k => { document.getElementById('new-wish-' + k).value = ''; });
+  if (document.getElementById('new-wish-prio')) document.getElementById('new-wish-prio').value = '0';
+  document.getElementById('wish-preview-img').style.display = 'none';
+  lastScannedImageUrl = '';
+  setTimeout(() => { const box = document.getElementById('wish-preview-box'); if (box && !document.getElementById('new-wish-title').value) box.style.display = 'none'; }, 900);
+  await loadWishlistData();
+  renderWishlist();
 }
 
 function renderWishlist() {
@@ -2438,7 +2514,8 @@ function renderWishlist() {
     }
 
     const el = document.createElement('div');
-    el.className = 'list-item ' + (item.is_purchased ? 'done' : '');
+    const isOpen = isEditOpen('wishlist', item);
+    el.className = 'list-item wish-item ' + (item.is_purchased ? 'done ' : '') + (isOpen ? 'expanded' : '');
     
     let infoParts = [];
     if (item.price) infoParts.push(escapeHtml(item.price));
@@ -2450,7 +2527,7 @@ function renderWishlist() {
         <i data-lucide="${item.is_purchased ? 'check-square' : 'square'}"></i>
       </div>
       ${safeUrl(item.image) ? `<img src="${escapeHtml(safeUrl(item.image))}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; margin-right:12px; border:1px solid var(--border);" />` : ''}
-      <div class="list-item-content">
+      <div class="list-item-content" style="cursor:pointer;" onclick="toggleEdit('wishlist','${item.id}')">
         <div style="font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.title)}</div>
         <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
           ${infoParts.join(' · ')}
@@ -2477,6 +2554,8 @@ function renderWishlist() {
       </button>
     `;
     list.appendChild(el);
+
+    if (isOpen) appendEditPanel(list, 'wishlist', item);
   });
 
   if (wishlistItems.length > 0) {

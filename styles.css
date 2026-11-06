@@ -647,3 +647,20 @@ html, body {
 .budget-action-btn { flex: 1; height: 44px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-surface); color: var(--text); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; }
 .budget-action-btn.primary { background: var(--c-budget); border-color: var(--c-budget); color: #000; }
 .budget-action-btn.danger { flex: none; width: 52px; color: var(--c-trash); background: rgba(255,69,58,0.1); border-color: transparent; }
+
+/* ── Aufklappbare Einträge & Ladeanzeige (alle Listen) ───────── */
+.clickable { cursor: pointer; }
+.list-item.expanded, .note-card.expanded { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.edit-panel {
+  padding: var(--space-md); margin-bottom: 10px;
+  background: var(--bg-surface-bot);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+}
+.edit-panel textarea { width: 100%; }
+button[data-state="success"] { background: #30d158 !important; border-color: #30d158 !important; color: #000 !important; }
+button[data-state="error"] { background: var(--c-trash) !important; border-color: var(--c-trash) !important; color: #fff !important; }
+button:disabled { opacity: 0.7; cursor: progress; }
+#add-wish-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
