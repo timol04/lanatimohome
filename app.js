@@ -2353,6 +2353,8 @@ async function scanWishUrl() {
 }
 
 async function addWishItem() {
+  const btn = document.getElementById('add-wish-btn');
+  if (btn.disabled) return;
   const url = document.getElementById('new-wish-url').value.trim();
   const title = document.getElementById('new-wish-title').value.trim();
   const price = document.getElementById('new-wish-price').value.trim();
@@ -2360,39 +2362,123 @@ async function addWishItem() {
   const prio = parseInt(document.getElementById('new-wish-prio')?.value || '0');
   const authorStr = currentUser?.email?.split('@')[0] ?? 'Unbekannt';
 
-  if (!title) return;
+  if (!title) {
+    showToast('Bitte einen Titel angeben');
+    return;
+  }
 
-  const newItem = { 
-    id: Date.now(), title, url, price, color, prio, image: lastScannedImageUrl, author: authorStr, is_purchased: false, quantity: 1, created_at: new Date().toISOString() 
-  };
-  wishlistItems.unshift(newItem);
-  
+  // Ladeanzeige: Button sperren, solange im Hintergrund gespeichert wird
+  setBtnState(btn, 'loading', 'Speichere...');
+
+  const { data, error } = await db.from('wishlist').insert([{ 
+    title, url, price, color, prio, image: lastScannedImageUrl, author: authorStr, is_purchased: false, quantity: 1 
+  }]).select();
+
+  if (error || !data) {
+    console.error("Fehler beim Speichern:", error);
+    showToast("Fehler beim Speichern: " + (error?.message || 'Unbekannter Fehler'));
+    setBtnState(btn, 'error', 'Fehlgeschlagen – nochmal versuchen');
+    resetBtnLater(btn, 'Zur Wunschliste hinzufügen');
+    return; // Eingaben bleiben erhalten
+  }
+
+  // Realtime kann den Eintrag schon geliefert haben
+  if (!wishlistItems.find(i => i.id === data[0].id)) wishlistItems.unshift(data[0]);
+
   document.getElementById('new-wish-url').value = '';
   document.getElementById('new-wish-title').value = '';
   document.getElementById('new-wish-price').value = '';
   document.getElementById('new-wish-color').value = '';
   if(document.getElementById('new-wish-prio')) document.getElementById('new-wish-prio').value = '0';
-  document.getElementById('wish-preview-box').style.display = 'none';
   lastScannedImageUrl = '';
-  
+  document.getElementById('wish-preview-img').style.display = 'none';
+
   updateWidgetInGrid('wishlist');
   renderWishlist();
 
-  const { data, error } = await db.from('wishlist').insert([{ 
-    title, url, price, color, prio, image: newItem.image, author: authorStr, is_purchased: false, quantity: 1 
-  }]).select();
-  
+  setBtnState(btn, 'success', 'Hinzugefügt');
+  showToast('Zur Wunschliste hinzugefügt');
+  setTimeout(() => {
+    // Vorschau erst nach kurzer Erfolgsanzeige schliessen
+    const box = document.getElementById('wish-preview-box');
+    if (box && document.getElementById('new-wish-title').value === '') box.style.display = 'none';
+    resetBtnLater(btn, 'Zur Wunschliste hinzufügen', 0);
+  }, 900);
+}
+
+// Button-Zustände für Hintergrund-Speichern: loading | success | error
+function setBtnState(btn, state, label) {
+  if (!btn) return;
+  const icons = { loading: '<i data-lucide="loader" class="spin"></i>', success: '<i data-lucide="check"></i>', error: '<i data-lucide="alert-circle"></i>' };
+  btn.disabled = state === 'loading';
+  btn.dataset.state = state;
+  btn.innerHTML = `${icons[state] || ''} ${label}`;
+  lucide.createIcons();
+}
+
+function resetBtnLater(btn, label, delay = 2500) {
+  setTimeout(() => {
+    if (!btn.isConnected || btn.dataset.state === 'loading') return;
+    btn.disabled = false;
+    btn.dataset.state = '';
+    btn.textContent = label;
+  }, delay);
+}
+
+// ── Anschaffungen: Eintrag aufklappen & bearbeiten ───────────
+let expandedWishId = null;
+
+function toggleWishEdit(id) {
+  expandedWishId = expandedWishId === id ? null : id;
+  renderWishlist();
+}
+
+async function saveWishEdit(id) {
+  const item = wishlistItems.find(i => i.id === id);
+  const btn = document.getElementById('wish-edit-save');
+  if (!item || !btn || btn.disabled) return;
+  const title = document.getElementById('edit-wish-title').value.trim();
+  if (!title) {
+    showToast('Bitte einen Titel angeben');
+    return;
+  }
+  const row = {
+    title,
+    url: document.getElementById('edit-wish-url').value.trim(),
+    price: document.getElementById('edit-wish-price').value.trim(),
+    color: document.getElementById('edit-wish-color').value.trim()
+  };
+
+  setBtnState(btn, 'loading', 'Speichere...');
+  const { error } = await db.from('wishlist').update(row).eq('id', id);
+
   if (error) {
     console.error("Fehler beim Speichern:", error);
     showToast("Fehler beim Speichern: " + error.message);
-  } else if (data) {
-    wishlistItems = wishlistItems.map(i => i.id === newItem.id ? data[0] : i);
+    setBtnState(btn, 'error', 'Fehlgeschlagen – nochmal versuchen');
+    resetBtnLater(btn, 'Speichern');
+    return; // Eingaben bleiben erhalten
   }
+
+  Object.assign(item, row);
+  updateWidgetInGrid('wishlist');
+  setBtnState(btn, 'success', 'Gespeichert');
+  showToast('Gespeichert');
+  setTimeout(() => {
+    if (expandedWishId === id) { expandedWishId = null; renderWishlist(); }
+  }, 800);
 }
 
 function renderWishlist() {
   const list = document.getElementById('wishlist-list');
   if (!list) return;
+
+  // Ungespeicherte Eingaben im geöffneten Bearbeiten-Feld über ein Neuzeichnen retten (z.B. durch Realtime)
+  const draft = {};
+  ['title', 'url', 'price', 'color'].forEach(k => {
+    const f = document.getElementById('edit-wish-' + k);
+    if (f) draft[k] = f.value;
+  });
 
   list.innerHTML = '';
   if (wishlistItems.length === 0) {
@@ -2438,7 +2524,8 @@ function renderWishlist() {
     }
 
     const el = document.createElement('div');
-    el.className = 'list-item ' + (item.is_purchased ? 'done' : '');
+    const isOpen = expandedWishId === item.id;
+    el.className = 'list-item wish-item ' + (item.is_purchased ? 'done ' : '') + (isOpen ? 'expanded' : '');
     
     let infoParts = [];
     if (item.price) infoParts.push(escapeHtml(item.price));
@@ -2450,7 +2537,7 @@ function renderWishlist() {
         <i data-lucide="${item.is_purchased ? 'check-square' : 'square'}"></i>
       </div>
       ${safeUrl(item.image) ? `<img src="${escapeHtml(safeUrl(item.image))}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; margin-right:12px; border:1px solid var(--border);" />` : ''}
-      <div class="list-item-content">
+      <div class="list-item-content" style="cursor:pointer;" onclick="toggleWishEdit(${item.id})">
         <div style="font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.title)}</div>
         <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
           ${infoParts.join(' · ')}
@@ -2477,6 +2564,25 @@ function renderWishlist() {
       </button>
     `;
     list.appendChild(el);
+
+    if (isOpen) {
+      const v = k => escapeHtml(draft[k] !== undefined ? draft[k] : (item[k] || ''));
+      const panel = document.createElement('div');
+      panel.className = 'wish-edit';
+      panel.innerHTML = `
+        <div class="input-row" style="margin-bottom:8px;"><input type="text" id="edit-wish-title" placeholder="Titel" value="${v('title')}" style="width:100%;" /></div>
+        <div class="input-row" style="margin-bottom:8px;"><input type="url" id="edit-wish-url" placeholder="Link (optional)" value="${v('url')}" style="width:100%;" /></div>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <div class="input-row" style="flex:1;"><input type="text" id="edit-wish-price" placeholder="Preis (z.B. 499 CHF)" value="${v('price')}" style="width:100%;" /></div>
+          <div class="input-row" style="flex:1;"><input type="text" id="edit-wish-color" placeholder="Farbe (optional)" value="${v('color')}" style="width:100%;" /></div>
+        </div>
+        <div class="budget-modal-actions" style="margin-top:0;">
+          <button class="budget-action-btn" onclick="toggleWishEdit(${item.id})">Abbrechen</button>
+          <button class="budget-action-btn primary wish-save-btn" id="wish-edit-save" onclick="saveWishEdit(${item.id})">Speichern</button>
+        </div>`;
+      panel.addEventListener('keydown', e => { if (e.key === 'Enter') saveWishEdit(item.id); });
+      list.appendChild(panel);
+    }
   });
 
   if (wishlistItems.length > 0) {
