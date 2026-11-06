@@ -836,6 +836,7 @@ function openOverlay(title, color, renderFn, onInit) {
 
 function closeOverlay() {
   document.getElementById('budget-modal')?.remove();
+  document.getElementById('edit-modal')?.remove();
   document.getElementById('overlay-container').classList.remove('open');
 }
 
@@ -912,7 +913,7 @@ function renderShoppingList() {
 
   sorted.forEach(item => {
     const el = document.createElement('div');
-    el.className = `list-item ${item.is_done ? 'done' : ''} ${isEditOpen('shopping', item) ? 'expanded' : ''}`;
+    el.className = `list-item ${item.is_done ? 'done' : ''}`;
     let itemContentHtml = '';
     const isMenu = item.text.startsWith('[Menü]');
     if (isMenu) {
@@ -955,7 +956,6 @@ function renderShoppingList() {
       </button>
     `;
     list.appendChild(el);
-    if (isEditOpen('shopping', item)) appendEditPanel(list, 'shopping', item);
   });
 
   lucide.createIcons();
@@ -1073,14 +1073,13 @@ function renderTodoList() {
   }
   sorted.forEach(item => {
     const el = document.createElement('div');
-    el.className = `list-item ${item.is_done ? 'done' : ''} ${isEditOpen('todo', item) ? 'expanded' : ''}`;
+    el.className = `list-item ${item.is_done ? 'done' : ''}`;
     el.innerHTML = `
       <div class="item-check" onclick="toggleTodoItem('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
       <div class="item-text clickable" onclick="toggleEdit('todo','${item.id}')">${escapeHtml(item.text)}</div>
       <button class="item-delete" onclick="deleteTodoItem('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
     `;
     list.appendChild(el);
-    if (isEditOpen('todo', item)) appendEditPanel(list, 'todo', item);
   });
   
   lucide.createIcons();
@@ -1187,7 +1186,7 @@ function renderNotesList() {
   }
   notesItems.forEach(item => {
     const el = document.createElement('div');
-    el.className = 'note-card' + (isEditOpen('notes', item) ? ' expanded' : '');
+    el.className = 'note-card' + '';
     const isMe = item.author === (currentUser?.email?.split('@')[0] ?? 'Unbekannt');
     const date = new Date(item.created_at).toLocaleString('de-CH', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 
@@ -1204,7 +1203,6 @@ function renderNotesList() {
       <div class="note-body clickable" onclick="toggleEdit('notes','${item.id}')">${escapeHtml(item.text)}</div>
     `;
     list.appendChild(el);
-    if (isEditOpen('notes', item)) appendEditPanel(list, 'notes', item);
   });
   
   lucide.createIcons();
@@ -1466,14 +1464,13 @@ function renderChoresList() {
     const sorted = [...items.filter(i => !i.is_done), ...items.filter(i => i.is_done)];
     sorted.forEach(item => {
       const el = document.createElement('div');
-      el.className = `list-item ${item.is_done ? 'done' : ''} ${isEditOpen('chores', item) ? 'expanded' : ''}`;
+      el.className = `list-item ${item.is_done ? 'done' : ''}`;
       el.innerHTML = `
         <div class="item-check" onclick="toggleChore('${item.id}')"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
         <div class="item-text clickable" onclick="toggleEdit('chores','${item.id}')">${escapeHtml(item.text)}</div>
         <button class="item-delete" onclick="deleteChore('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       `;
       list.appendChild(el);
-      if (isEditOpen('chores', item)) appendEditPanel(list, 'chores', item);
     });
   };
 
@@ -1660,7 +1657,7 @@ function renderCountdownsList() {
     const days = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
     
     const el = document.createElement('div');
-    el.className = `list-item ${isEditOpen('countdown', item) ? 'expanded' : ''}`;
+    el.className = `list-item`;
     el.style.alignItems = 'center';
     el.innerHTML = `
       <div style="background:color-mix(in srgb, var(--c-countdown) 15%, transparent); color:var(--c-countdown); border-radius:8px; padding:4px 12px; font-weight:bold; font-size:1.2rem; min-width:40px; text-align:center;">
@@ -1673,7 +1670,6 @@ function renderCountdownsList() {
       <button class="item-delete" onclick="deleteCountdown('${item.id}')"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
     `;
     list.appendChild(el);
-    if (isEditOpen('countdown', item)) appendEditPanel(list, 'countdown', item);
   });
   lucide.createIcons();
 }
@@ -1978,60 +1974,56 @@ async function saveWithFeedback(btn, work, okLabel = 'Gespeichert') {
 
 // ── Gemeinsames Muster: Eintrag anklicken, aufklappen, bearbeiten ──
 const EDIT_CONFIG = {
-  shopping:  { table: 'shopping_items', widget: 'shopping',  items: () => shoppingItems,   render: () => renderShoppingList(),   fields: [{ k: 'text', label: 'Artikel', type: 'textarea' }] },
-  todo:      { table: 'todos',          widget: 'todo',      items: () => todosItems,      render: () => renderTodoList(),       fields: [{ k: 'text', label: 'Aufgabe', type: 'text' }] },
-  chores:    { table: 'chores',         widget: 'chores',    items: () => choresItems,     render: () => renderChoresList(),     fields: [{ k: 'text', label: 'Ämtli (z.B. Bad putzen (Lana) [Täglich])', type: 'text' }] },
-  notes:     { table: 'notes',          widget: 'notes',     items: () => notesItems,      render: () => renderNotesList(),      fields: [{ k: 'text', label: 'Notiz', type: 'textarea' }] },
-  countdown: { table: 'countdowns',     widget: 'countdown', items: () => countdownsItems, render: () => renderCountdownsList(), fields: [{ k: 'title', label: 'Ereignis', type: 'text' }, { k: 'date', label: 'Datum', type: 'date' }] },
-  packages:  { table: 'packages',       widget: 'packages',  items: () => packagesItems,   render: () => renderPackagesList(),
+  shopping:  { del: 'deleteShoppingItem', table: 'shopping_items', widget: 'shopping',  items: () => shoppingItems,   render: () => renderShoppingList(),   fields: [{ k: 'text', label: 'Artikel', type: 'textarea' }] },
+  todo:      { del: 'deleteTodoItem', table: 'todos',          widget: 'todo',      items: () => todosItems,      render: () => renderTodoList(),       fields: [{ k: 'text', label: 'Aufgabe', type: 'text' }] },
+  chores:    { del: 'deleteChore', table: 'chores',         widget: 'chores',    items: () => choresItems,     render: () => renderChoresList(),     fields: [{ k: 'text', label: 'Ämtli (z.B. Bad putzen (Lana) [Täglich])', type: 'text' }] },
+  notes:     { del: 'deleteNoteItem', table: 'notes',          widget: 'notes',     items: () => notesItems,      render: () => renderNotesList(),      fields: [{ k: 'text', label: 'Notiz', type: 'textarea' }] },
+  countdown: { del: 'deleteCountdown', table: 'countdowns',     widget: 'countdown', items: () => countdownsItems, render: () => renderCountdownsList(), fields: [{ k: 'title', label: 'Ereignis', type: 'text' }, { k: 'date', label: 'Datum', type: 'date' }] },
+  packages:  { del: 'deletePackage', table: 'packages',       widget: 'packages',  items: () => packagesItems,   render: () => renderPackagesList(),
     fields: [{ k: 'title', label: 'Bestellung', type: 'text' }, { k: 'courier', label: 'Anbieter', type: 'select', options: { post: 'Schweizerische Post', dhl: 'DHL', dpd: 'DPD', planzer: 'Planzer', andere: 'Andere' } }, { k: 'tracking_number', label: 'Tracking-Nummer (optional)', type: 'text', optional: true }] },
-  wishlist:  { table: 'wishlist',       widget: 'wishlist',  items: () => wishlistItems,   render: () => renderWishlist(),
+  wishlist:  { del: 'deleteWish', table: 'wishlist',       widget: 'wishlist',  items: () => wishlistItems,   render: () => renderWishlist(),
     fields: [{ k: 'title', label: 'Titel', type: 'text' }, { k: 'url', label: 'Link (optional)', type: 'url', optional: true }, { k: 'price', label: 'Preis (z.B. 499 CHF)', type: 'text', optional: true }, { k: 'color', label: 'Farbe (optional)', type: 'text', optional: true }] }
 };
 
-let expandedEdit = null; // { key, id } – es ist immer nur ein Eintrag aufgeklappt
-const editDrafts = {};   // ungespeicherte Eingaben, überstehen ein Neuzeichnen (z.B. durch Realtime)
-
-function isEditOpen(key, item) {
-  return !!expandedEdit && expandedEdit.key === key && expandedEdit.id === String(item.id);
+function closeEditModal() {
+  document.getElementById('edit-modal')?.remove();
 }
 
+// Popup wie beim Budget: Farbe kommt vom jeweiligen Widget (--w-color des Overlays)
 function toggleEdit(key, id) {
-  id = String(id);
-  const wasOpen = expandedEdit && expandedEdit.key === key && expandedEdit.id === id;
-  if (expandedEdit) delete editDrafts[expandedEdit.key + ':' + expandedEdit.id];
-  const prev = expandedEdit;
-  expandedEdit = wasOpen ? null : { key, id };
-  if (prev && prev.key !== key) EDIT_CONFIG[prev.key].render();
-  EDIT_CONFIG[key].render();
-}
-
-function appendEditPanel(list, key, item) {
+  closeEditModal();
+  closeBudgetModal();
   const cfg = EDIT_CONFIG[key];
-  const draft = editDrafts[key + ':' + item.id] || {};
-  const panel = document.createElement('div');
-  panel.className = 'edit-panel';
+  const item = cfg.items().find(i => String(i.id) === String(id));
+  if (!item) return;
+  const modal = document.createElement('div');
+  modal.id = 'edit-modal';
+  modal.className = 'budget-modal';
   const fieldsHtml = cfg.fields.map(f => {
-    const val = draft[f.k] !== undefined ? draft[f.k] : (item[f.k] ?? '');
-    if (f.type === 'textarea') return `<div class="input-row" style="margin-bottom:8px;"><textarea data-field="${f.k}" rows="3" placeholder="${escapeHtml(f.label)}">${escapeHtml(val)}</textarea></div>`;
-    if (f.type === 'select') return `<div class="input-row" style="margin-bottom:8px;"><select data-field="${f.k}" style="width:100%;">${Object.entries(f.options).map(([v, l]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
+    const val = item[f.k] ?? '';
+    if (f.type === 'textarea') return `<div class="input-row" style="margin-bottom:8px;"><textarea data-field="${f.k}" rows="4" placeholder="${escapeHtml(f.label)}">${escapeHtml(val)}</textarea></div>`;
+    if (f.type === 'select') return `<div class="input-row" style="margin-bottom:8px;"><select data-field="${f.k}" class="prio-select" style="width:100%;">${Object.entries(f.options).map(([v, l]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
     return `<div class="input-row" style="margin-bottom:8px;"><input type="${f.type}" data-field="${f.k}" placeholder="${escapeHtml(f.label)}" value="${escapeHtml(val)}" style="width:100%;" /></div>`;
   }).join('');
-  panel.innerHTML = `
-    ${fieldsHtml}
-    <div class="budget-modal-actions" style="margin-top:4px;">
-      <button class="budget-action-btn" onclick="toggleEdit('${key}','${item.id}')">Abbrechen</button>
-      <button class="budget-action-btn primary" id="edit-save-btn" onclick="saveEdit('${key}','${item.id}')">Speichern</button>
+  modal.innerHTML = `
+    <div class="budget-modal-card">
+      <div class="budget-modal-head">
+        <h3>Bearbeiten</h3>
+        <button class="item-delete" id="edit-modal-close" aria-label="Schliessen"><i data-lucide="x" style="width:18px;height:18px;"></i></button>
+      </div>
+      ${fieldsHtml}
+      <div class="budget-modal-actions">
+        <button class="budget-action-btn danger" id="edit-modal-del" aria-label="Löschen"><i data-lucide="trash-2" style="width:18px;height:18px;"></i></button>
+        <button class="budget-action-btn primary" id="edit-save-btn">Speichern</button>
+      </div>
     </div>`;
-  panel.addEventListener('input', e => {
-    const k = e.target.dataset.field;
-    if (!k) return;
-    const dk = key + ':' + item.id;
-    editDrafts[dk] = editDrafts[dk] || {};
-    editDrafts[dk][k] = e.target.value;
-  });
-  panel.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') saveEdit(key, item.id); });
-  list.appendChild(panel);
+  document.getElementById('overlay-container').appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeEditModal(); });
+  modal.querySelector('#edit-modal-close').addEventListener('click', closeEditModal);
+  modal.querySelector('#edit-modal-del').addEventListener('click', () => { closeEditModal(); window[cfg.del](item.id); });
+  modal.querySelector('#edit-save-btn').addEventListener('click', () => saveEdit(key, item.id));
+  modal.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') saveEdit(key, item.id); });
+  lucide.createIcons();
 }
 
 async function saveEdit(key, id) {
@@ -2040,22 +2032,20 @@ async function saveEdit(key, id) {
   const item = cfg.items().find(i => String(i.id) === id);
   const btn = document.getElementById('edit-save-btn');
   if (!item || !btn || btn.disabled) return;
-  const panel = btn.closest('.edit-panel');
+  const modal = btn.closest('#edit-modal');
   const row = {};
   for (const f of cfg.fields) {
-    const v = panel.querySelector(`[data-field="${f.k}"]`).value.trim();
+    const v = modal.querySelector(`[data-field="${f.k}"]`).value.trim();
     if (!v && !f.optional) { showToast('Bitte alle Pflichtfelder ausfüllen'); return; }
     row[f.k] = v;
   }
   const ok = await saveWithFeedback(btn, () => db.from(cfg.table).update(row).eq('id', item.id));
-  if (!ok) return; // Eingaben bleiben erhalten
+  if (!ok) return; // Popup bleibt offen, Eingaben bleiben erhalten
   const current = cfg.items().find(i => String(i.id) === id);
   if (current) Object.assign(current, row);
-  delete editDrafts[key + ':' + id];
   updateWidgetInGrid(cfg.widget);
-  setTimeout(() => {
-    if (expandedEdit && expandedEdit.key === key && expandedEdit.id === id) { expandedEdit = null; cfg.render(); }
-  }, 800);
+  cfg.render();
+  setTimeout(closeEditModal, 700);
 }
 
 let toastTimer = null;
@@ -2183,7 +2173,7 @@ function renderPackagesList() {
 
   packagesItems.forEach(item => {
     const el = document.createElement('div');
-    el.className = 'list-item ' + (item.is_delivered ? 'done ' : '') + (isEditOpen('packages', item) ? 'expanded' : '');
+    el.className = 'list-item ' + (item.is_delivered ? 'done ' : '') + '';
     
     // Tracking URL Logic
     let trackingUrl = '#';
@@ -2216,7 +2206,6 @@ function renderPackagesList() {
       </button>
     `;
     list.appendChild(el);
-    if (isEditOpen('packages', item)) appendEditPanel(list, 'packages', item);
   });
   lucide.createIcons();
 }
@@ -2514,8 +2503,7 @@ function renderWishlist() {
     }
 
     const el = document.createElement('div');
-    const isOpen = isEditOpen('wishlist', item);
-    el.className = 'list-item wish-item ' + (item.is_purchased ? 'done ' : '') + (isOpen ? 'expanded' : '');
+        el.className = 'list-item wish-item ' + (item.is_purchased ? 'done ' : '');
     
     let infoParts = [];
     if (item.price) infoParts.push(escapeHtml(item.price));
@@ -2555,7 +2543,6 @@ function renderWishlist() {
     `;
     list.appendChild(el);
 
-    if (isOpen) appendEditPanel(list, 'wishlist', item);
   });
 
   if (wishlistItems.length > 0) {
