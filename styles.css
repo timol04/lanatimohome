@@ -648,17 +648,18 @@ html, body {
 .budget-action-btn.primary { background: var(--c-budget); border-color: var(--c-budget); color: #000; }
 .budget-action-btn.danger { flex: none; width: 52px; color: var(--c-trash); background: rgba(255,69,58,0.1); border-color: transparent; }
 
-/* ── Anschaffungen: aufklappbarer Eintrag & Ladeanzeige ───────── */
-.list-item.wish-item.expanded { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-.wish-edit {
+/* ── Aufklappbare Einträge & Ladeanzeige (alle Listen) ───────── */
+.clickable { cursor: pointer; }
+.list-item.expanded, .note-card.expanded { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.edit-panel {
   padding: var(--space-md); margin-bottom: 10px;
-  background: linear-gradient(180deg, var(--bg-surface-bot), var(--bg-surface-bot));
+  background: var(--bg-surface-bot);
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   box-shadow: 0 6px 16px rgba(0,0,0,0.25);
 }
-.wish-edit .budget-modal-actions { margin-top: 0; }
-.wish-save-btn[data-state="success"], #add-wish-btn[data-state="success"] { background: #30d158 !important; border-color: #30d158; color: #000 !important; }
-.wish-save-btn[data-state="error"], #add-wish-btn[data-state="error"] { background: var(--c-trash) !important; border-color: var(--c-trash); color: #fff !important; }
+.edit-panel textarea { width: 100%; }
+button[data-state="success"] { background: #30d158 !important; border-color: #30d158 !important; color: #000 !important; }
+button[data-state="error"] { background: var(--c-trash) !important; border-color: var(--c-trash) !important; color: #fff !important; }
 button:disabled { opacity: 0.7; cursor: progress; }
 #add-wish-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .spin { animation: spin 0.9s linear infinite; }
