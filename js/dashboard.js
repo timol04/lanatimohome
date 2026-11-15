@@ -213,9 +213,17 @@ function widgetInnerHtml(w) {
     </div>`;
 }
 
-// Querformat-iPad: 3×3 Widgets neben der Info-Spalte, sonst 8 pro Seite
+// Querformat-iPad: 3×3 Widgets neben der Info-Spalte, iPad hochkant 2×4.
+// Handy: so viele Reihen à 2 Widgets, wie ganz auf den Bildschirm passen (nichts abgeschnitten).
+const PHONE_ROW_MIN = 124;
+function phoneRows() {
+  const h = $('#carousel-container')?.clientHeight || 0;
+  return Math.max(2, Math.min(4, Math.floor((h - 24) / PHONE_ROW_MIN)));
+}
 function widgetsPerPage() {
-  return window.matchMedia('(min-width: 1024px)').matches ? WIDGETS_PER_PAGE.wide : WIDGETS_PER_PAGE.normal;
+  if (window.matchMedia('(min-width: 1024px)').matches) return WIDGETS_PER_PAGE.wide;
+  if (window.matchMedia('(min-width: 768px)').matches) return WIDGETS_PER_PAGE.normal;
+  return phoneRows() * 2;
 }
 let renderedPerPage = 0;
 window.addEventListener('resize', () => {
@@ -238,6 +246,7 @@ function renderWidgetGrid() {
   for (let i = 0; i < pageCount(); i++) {
     const pageEl = document.createElement('div');
     pageEl.className = 'carousel-page';
+    pageEl.style.setProperty('--rows', Math.ceil(perPage / 2));
     WIDGETS.slice(i * perPage, (i + 1) * perPage).forEach(w => {
       const el = document.createElement('div');
       el.className = `widget ${w.placeholder ? 'is-placeholder' : ''}`;

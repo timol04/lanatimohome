@@ -814,7 +814,13 @@ body.is-sorting .widget:not(.sortable-chosen):not(.sortable-ghost) { animation: 
   .icon-btn-round { width: 32px; height: 32px; }
 
 
-  .carousel-page { padding: var(--space-md) var(--space-md) 60px; }
+  /* Reihen füllen die verfügbare Höhe, Anzahl pro Seite rechnet dashboard.js aus */
+  .carousel-page {
+    padding: 12px var(--space-md) 12px; gap: 12px;
+    grid-template-rows: repeat(var(--rows, 4), minmax(0, 1fr)); grid-auto-rows: unset;
+    align-content: stretch; overflow: hidden;
+  }
+  .carousel-page .widget { aspect-ratio: auto; }
   .widget { padding: var(--space-md); }
   /* Auf dem Handy nur Symbol, Titel und Status (keine Listen) */
   .widget-content { display: none; }
