@@ -25,7 +25,7 @@ const TRAM_STATION = 'Allschwil, Dorf';
 const TRAM_LABEL = 'Abfahrten Allschwil Dorf';
 const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast?latitude=47.5596&longitude=7.5886&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FZurich';
 
-const WIDGETS_PER_PAGE = 8;
+const WIDGETS_PER_PAGE = { wide: 9, normal: 8 };  // Querformat-iPad 3×3, sonst 8
 const UNDO_MS = 5000;              // So lange kann man Löschen rückgängig machen
 const SCREENSAVER_MS = 5 * 60 * 1000;
 const BLACKOUT_MS = 30 * 60 * 1000;

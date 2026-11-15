@@ -16,14 +16,16 @@ Gemeinsames Alltags-Dashboard für Timo & Lana – läuft als PWA auf dem Wand-i
 
 ```
 index.html            Lädt Bibliotheken und die App-Dateien (Reihenfolge wichtig)
-styles.css            Design-System: Farben, Grössen-Skala, Bausteine, Animationen
+styles.css            Design-System: Farben, Grössen-Skala, Milchglas, Bausteine, Animationen
+assets/hintergrund.jpg  Hintergrundbild des Homescreens (später Fotos aus dem Album)
 sw.js                 Service Worker (offline-fähig, immer zuerst Netz)
 js/config.js          Feste Einstellungen: Supabase, Namen, Anbieter, Haltestelle, Zeiten
 js/core.js            Grundbausteine: Daten-Baustein (createStore), Hinweise mit Rückgängig,
                       Detailansicht, Popups, Formularfelder, Hilfsfunktionen
 js/widgets/*.js       Ein Widget pro Datei (Einkauf, To-Do, Notizen, Essen, Ämtli, …)
 js/edit.js            Bearbeiten-Popup für alle Listen
-js/dashboard.js       Homescreen: Kopfzeile, Widget-Raster, Karussell, Abfahrten, Tageswechsel
+js/dashboard.js       Homescreen: Info-Spalte (Uhr, Wetter, Abfahrten), Widget-Raster, Karussell,
+                      Verschieben auch auf andere Seiten, Tageswechsel
 js/screensaver.js     Fotos nach 5 Min., schwarz nach 30 Min.
 js/main.js            Start und Login
 supabase/             Datenbank-Schema, SQL-Skripte und Edge Function (Link-Scanner)

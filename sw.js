@@ -1,9 +1,10 @@
-const CACHE = 'lanatimohome-v10';
+const CACHE = 'lanatimohome-v11';
 // Relative Pfade, damit es auch unter /lanatimohome/ auf GitHub Pages funktioniert
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './assets/hintergrund.jpg',
   './manifest.json',
   './js/config.js',
   './js/core.js',
