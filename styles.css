@@ -866,3 +866,41 @@ body.is-sorting .widget:not(.sortable-chosen):not(.sortable-ghost) { animation: 
   .segmented { flex-wrap: nowrap; }
   .segmented button { padding: 0 6px; font-size: 0.85rem; }
 }
+
+/* ── Detailansichten & Popups im Milchglas-Stil ──────────────── */
+/* Die Flächen-Farben werden hier auf Glas umgestellt, damit alle Bausteine
+   (Listen, Karten, Eingaben, Knöpfe) automatisch mitziehen. Das Foto ist bereits
+   unscharf, darum brauchen die Listen-Einträge keinen eigenen Blur (schont das iPad). */
+:root { --overlay-tint: rgba(10, 12, 18, 0.58); --field-bg: rgba(0, 0, 0, 0.28); }
+[data-theme="light"] { --overlay-tint: rgba(242, 242, 247, 0.6); --field-bg: rgba(255, 255, 255, 0.62); }
+
+#overlay-container, .modal {
+  --bg-surface: var(--glass-bg);
+  --bg-surface-top: var(--glass-bg);
+  --bg-surface-bot: var(--glass-bg);
+  --bg-input: var(--field-bg);
+  --bg-button: var(--glass-bg-strong);
+  --bg-button-hover: var(--glass-bg-strong);
+  --border: var(--glass-border);
+  --shadow-inner: none;
+  --shadow-card: none;
+  --text-muted: var(--glass-text-muted);
+}
+#overlay-container {
+  background:
+    radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--w-color, transparent) 22%, transparent), transparent 55%),
+    linear-gradient(var(--overlay-tint), var(--overlay-tint)),
+    var(--photo) center / cover no-repeat,
+    var(--bg);
+}
+#overlay-container .list-item, #overlay-container .card, #overlay-container .empty-state,
+#overlay-container .budget-split, #overlay-container .food-day-card:not(.is-today) { border: 1px solid var(--glass-border); }
+#overlay-container input, #overlay-container textarea, #overlay-container select,
+.modal input, .modal textarea, .modal select { border-color: var(--glass-border); }
+#overlay-container input:focus, #overlay-container textarea:focus, #overlay-container select:focus,
+.modal input:focus, .modal textarea:focus, .modal select:focus { border-color: var(--w-color, var(--c-todo)); }
+.segmented button.active { background: var(--glass-bg-strong); }
+.modal-card {
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: blur(30px) saturate(150%); backdrop-filter: blur(30px) saturate(150%);
+}
