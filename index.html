@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#0D0F12" />
   <meta name="description" content="Gemeinsames Alltags-Dashboard für Timo & Lana" />
 
   <!-- PWA / iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="LanaTimoHome" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -17,26 +18,41 @@
 
   <title>LanaTimoHome</title>
 
-  <!-- Styles -->
+  <!-- Theme so früh wie möglich setzen, damit nichts aufblitzt -->
+  <script>
+    try { const t = localStorage.getItem('theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- Supabase JS SDK via CDN -->
+  <!-- Bibliotheken (feste Versionen) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js"></script>
-  <!-- Lucide Icons via CDN -->
   <script src="https://unpkg.com/lucide@1.48.0"></script>
-  <!-- SortableJS für Widget Drag & Drop -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.7/Sortable.min.js"></script>
 </head>
 <body>
   <div id="app">
-    <!-- Initial Loading State -->
-    <div style="display:flex;align-items:center;justify-content:center;height:100dvh;color:#8e8e93;">
-      Wird geladen…
-    </div>
+    <div class="boot-screen">Wird geladen…</div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- App (Reihenfolge wichtig: config → core → widgets → dashboard → main) -->
+  <script src="js/config.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/widgets/shopping.js"></script>
+  <script src="js/widgets/todo.js"></script>
+  <script src="js/widgets/info.js"></script>
+  <script src="js/widgets/countdowns.js"></script>
+  <script src="js/widgets/notes.js"></script>
+  <script src="js/widgets/food.js"></script>
+  <script src="js/widgets/chores.js"></script>
+  <script src="js/widgets/packages.js"></script>
+  <script src="js/widgets/wishlist.js"></script>
+  <script src="js/widgets/budget.js"></script>
+  <script src="js/edit.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/screensaver.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>

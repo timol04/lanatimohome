@@ -1,11 +1,26 @@
-const CACHE = 'lanatimohome-v9';
+const CACHE = 'lanatimohome-v10';
 // Relative Pfade, damit es auch unter /lanatimohome/ auf GitHub Pages funktioniert
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './app.js',
-  './manifest.json'
+  './manifest.json',
+  './js/config.js',
+  './js/core.js',
+  './js/edit.js',
+  './js/dashboard.js',
+  './js/screensaver.js',
+  './js/main.js',
+  './js/widgets/shopping.js',
+  './js/widgets/todo.js',
+  './js/widgets/info.js',
+  './js/widgets/countdowns.js',
+  './js/widgets/notes.js',
+  './js/widgets/food.js',
+  './js/widgets/chores.js',
+  './js/widgets/packages.js',
+  './js/widgets/wishlist.js',
+  './js/widgets/budget.js'
 ];
 
 self.addEventListener('install', e => {
