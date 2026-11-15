@@ -12,29 +12,24 @@ let lastDayKey = new Date().toDateString();
 function showDashboard() {
   document.getElementById('app').innerHTML = `
     <div id="homescreen-header">
-      <div class="header-left">
+      <div class="header-clock">
         <div class="header-time" id="clock-time">--:--</div>
         <div class="header-date" id="clock-date">Laden…</div>
-        <div class="header-tools">
-          <div class="header-weather" id="header-weather">${icon('cloud-sun', 'sm')}<span>--°C</span></div>
-          <button class="icon-btn icon-btn-round" onclick="reloadApp()" title="Neu laden" aria-label="Neu laden">${icon('refresh-cw', 'xs')}</button>
-          <button class="icon-btn icon-btn-round" onclick="toggleTheme()" title="Hell/Dunkel" aria-label="Hell/Dunkel wechseln">${icon(currentTheme() === 'light' ? 'moon' : 'sun', 'xs', 'theme-icon')}</button>
-          <button class="icon-btn icon-btn-round" onclick="event.stopPropagation(); startScreensaver()" title="Screensaver starten" aria-label="Screensaver starten">${icon('image', 'xs')}</button>
-          <span class="offline-pill" id="offline-pill" ${navigator.onLine ? 'hidden' : ''}>${icon('wifi-off', 'xs')}Offline</span>
-        </div>
+        <div class="header-weather" id="header-weather">${icon('cloud-sun', 'sm')}<span>--°C</span></div>
       </div>
-      <div class="header-center" id="header-center">
-        <div class="ambient-bg" id="ambient-bg"></div>
-        <div class="greeting-text">
-          <h2 id="greeting-title">Guten Tag</h2>
-          <p id="greeting-subtitle">Willkommen zuhause</p>
-        </div>
+      <div class="tram-board glass" id="tram-board">${tramTitleHtml()}</div>
+      <div class="header-tools">
+        <button class="icon-btn icon-btn-round" onclick="reloadApp()" title="Neu laden" aria-label="Neu laden">${icon('refresh-cw', 'xs')}</button>
+        <button class="icon-btn icon-btn-round" onclick="toggleTheme()" title="Hell/Dunkel" aria-label="Hell/Dunkel wechseln">${icon(currentTheme() === 'light' ? 'moon' : 'sun', 'xs', 'theme-icon')}</button>
+        <button class="icon-btn icon-btn-round" onclick="event.stopPropagation(); startScreensaver()" title="Screensaver starten" aria-label="Screensaver starten">${icon('image', 'xs')}</button>
+        <span class="offline-pill" id="offline-pill" ${navigator.onLine ? 'hidden' : ''}>${icon('wifi-off', 'xs')}Offline</span>
       </div>
-      <div class="header-right" id="tram-board">${tramTitleHtml()}</div>
     </div>
 
     <div class="carousel-container" id="carousel-container">
       <div class="carousel-track" id="carousel-track"></div>
+      <div class="drag-edge drag-edge-left" id="drag-edge-left">${icon('chevron-left', 'md')}</div>
+      <div class="drag-edge drag-edge-right" id="drag-edge-right">${icon('chevron-right', 'md')}</div>
     </div>
     <div class="page-indicators" id="page-indicators"></div>
 
@@ -218,8 +213,17 @@ function widgetInnerHtml(w) {
     </div>`;
 }
 
+// Querformat-iPad: 3×3 Widgets neben der Info-Spalte, sonst 8 pro Seite
+function widgetsPerPage() {
+  return window.matchMedia('(min-width: 1024px)').matches ? WIDGETS_PER_PAGE.wide : WIDGETS_PER_PAGE.normal;
+}
+let renderedPerPage = 0;
+window.addEventListener('resize', () => {
+  if (renderedPerPage && widgetsPerPage() !== renderedPerPage && !document.body.classList.contains('is-sorting')) renderWidgetGrid();
+});
+
 function pageCount() {
-  return Math.ceil(WIDGETS.length / WIDGETS_PER_PAGE);
+  return Math.ceil(WIDGETS.length / widgetsPerPage());
 }
 
 function renderWidgetGrid() {
@@ -228,11 +232,13 @@ function renderWidgetGrid() {
   if (!track) return;
   track.innerHTML = '';
   indicators.innerHTML = '';
+  const perPage = renderedPerPage = widgetsPerPage();
+  currentCarouselPage = Math.max(0, Math.min(currentCarouselPage, pageCount() - 1));
 
   for (let i = 0; i < pageCount(); i++) {
     const pageEl = document.createElement('div');
     pageEl.className = 'carousel-page';
-    WIDGETS.slice(i * WIDGETS_PER_PAGE, (i + 1) * WIDGETS_PER_PAGE).forEach(w => {
+    WIDGETS.slice(i * perPage, (i + 1) * perPage).forEach(w => {
       const el = document.createElement('div');
       el.className = `widget ${w.placeholder ? 'is-placeholder' : ''}`;
       el.id = `widget-${w.id}`;
@@ -258,7 +264,8 @@ function renderWidgetGrid() {
 }
 
 // Widgets durch langes Drücken (bzw. Ziehen mit der Maus) verschieben.
-// Die Reihenfolge bleibt auf diesem Gerät gespeichert.
+// Am linken/rechten Rand kurz halten blättert zur Nachbarseite, so lassen sich
+// Widgets auch auf eine andere Seite ziehen. Die Reihenfolge bleibt auf diesem Gerät gespeichert.
 function initSortable() {
   if (typeof Sortable === 'undefined') return;
   $$('.carousel-page').forEach(pageEl => {
@@ -269,13 +276,18 @@ function initSortable() {
       delay: 300,                 // Erst nach kurzem Halten verschieben, normales Tippen öffnet das Widget
       delayOnTouchOnly: true,
       touchStartThreshold: 6,
+      emptyInsertThreshold: 40,
+      forceFallback: true,        // Gleiches Verhalten mit Finger und Maus, nötig fürs Blättern am Rand
+      fallbackTolerance: 4,
       ghostClass: 'sortable-ghost',
       chosenClass: 'sortable-chosen',
       dragClass: 'sortable-drag',
       onChoose: () => { haptic(15); document.body.classList.add('is-sorting'); },
-      onUnchoose: () => document.body.classList.remove('is-sorting'),
+      onUnchoose: () => { document.body.classList.remove('is-sorting'); stopEdgePaging(); },
+      onStart: () => startEdgePaging(),
       onEnd: () => {
         document.body.classList.remove('is-sorting');
+        stopEdgePaging();
         const newOrder = $$('.widget').map(el => el.id.replace('widget-', ''));
         const before = JSON.stringify(WIDGETS.map(w => w.id));
         localStorage.setItem(ORDER_KEY, JSON.stringify(newOrder));
@@ -285,6 +297,53 @@ function initSortable() {
       }
     });
   });
+}
+
+// Blättern während dem Verschieben: Finger bzw. Maus am Rand halten
+const EDGE_PX = 70, EDGE_DELAY = 650;
+let edgeTimer = null, edgeSide = 0;
+function onEdgeMove(e) {
+  const p = e.touches?.[0] || e.changedTouches?.[0] || e;
+  if (p.clientX == null) return;
+  const box = $('#carousel-container')?.getBoundingClientRect();
+  if (!box) return;
+  let side = 0;
+  if (p.clientX < box.left + EDGE_PX && currentCarouselPage > 0) side = -1;
+  else if (p.clientX > box.right - EDGE_PX && currentCarouselPage < pageCount() - 1) side = 1;
+  if (side === edgeSide) return;
+  edgeSide = side;
+  clearTimeout(edgeTimer);
+  $('#drag-edge-left')?.classList.toggle('is-hot', side === -1);
+  $('#drag-edge-right')?.classList.toggle('is-hot', side === 1);
+  if (side) edgeTimer = setTimeout(flipPage, EDGE_DELAY);
+}
+function flipPage() {
+  if (!edgeSide) return;
+  goToPage(currentCarouselPage + edgeSide);
+  updateEdgeHints();
+  // Weiter blättern, solange man am Rand bleibt
+  if (edgeSide) edgeTimer = setTimeout(flipPage, EDGE_DELAY + 400);
+}
+function updateEdgeHints() {
+  $('#drag-edge-left')?.classList.toggle('is-available', currentCarouselPage > 0);
+  $('#drag-edge-right')?.classList.toggle('is-available', currentCarouselPage < pageCount() - 1);
+  if ((edgeSide === -1 && currentCarouselPage === 0) || (edgeSide === 1 && currentCarouselPage === pageCount() - 1)) {
+    edgeSide = 0;
+    clearTimeout(edgeTimer);
+    $$('.drag-edge').forEach(el => el.classList.remove('is-hot'));
+  }
+}
+const EDGE_EVENTS = ['pointermove', 'touchmove', 'mousemove', 'dragover'];
+function startEdgePaging() {
+  edgeSide = 0;
+  updateEdgeHints();
+  EDGE_EVENTS.forEach(ev => document.addEventListener(ev, onEdgeMove, { capture: true, passive: true }));
+}
+function stopEdgePaging() {
+  clearTimeout(edgeTimer);
+  edgeSide = 0;
+  EDGE_EVENTS.forEach(ev => document.removeEventListener(ev, onEdgeMove, { capture: true }));
+  $$('.drag-edge').forEach(el => el.classList.remove('is-hot', 'is-available'));
 }
 
 // Einzelnes Widget aktualisieren, ohne das ganze Raster neu aufzubauen
@@ -376,9 +435,9 @@ async function loadTramDepartures() {
   // Während der Bildschirm schwarz ist oder die App im Hintergrund läuft, nicht abfragen
   if (document.hidden || document.getElementById('blackout')?.classList.contains('active')) return;
   try {
-    const res = await fetch(`https://transport.opendata.ch/v1/stationboard?station=${encodeURIComponent(TRAM_STATION)}&limit=4`);
+    const res = await fetch(`https://transport.opendata.ch/v1/stationboard?station=${encodeURIComponent(TRAM_STATION)}&limit=6`);
     const data = await res.json();
-    const deps = (data.stationboard || []).slice(0, 3);
+    const deps = (data.stationboard || []).slice(0, 5);
     if (!deps.length) throw new Error('Keine Abfahrten');
     const now = Date.now();
     board.innerHTML = tramTitleHtml() + deps.map(dep => {

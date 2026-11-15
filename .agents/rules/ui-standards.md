@@ -3,6 +3,12 @@
 Alle Grössen, Farben und Bausteine sind in `styles.css` definiert. Keine Inline-Styles im JavaScript,
 stattdessen die vorhandenen Klassen und Hilfsfunktionen aus `js/core.js` verwenden.
 
+## Homescreen
+- Hintergrund ist ein Foto (`--photo`, `assets/hintergrund.jpg`) mit Abdunkelung `--photo-tint`.
+- Kacheln auf dem Foto sind Milchglas: Klasse `.glass` bzw. Tokens `--glass-bg`, `--glass-border`, `--glass-blur`.
+- Detailansichten und Popups bleiben deckend (`--bg`), damit Listen gut lesbar sind.
+- iPad quer: Info-Spalte links + 3×3 Widgets, hochkant: 2×4, Handy: Info oben + 2 Spalten.
+
 ## Icons
 - Immer über `icon(name, grösse)` erzeugen, nie `<i data-lucide>` mit eigener Breite/Höhe.
 - Grössen: `xs` 14px (Listen, Chips, Stepper) · `sm` 18px (Knöpfe, Header) · `md` 22px (Hauptaktion, Zurück) · `lg` 36px (Leerzustand, Wetter) · `xl` 180px (nur WLAN-QR).
