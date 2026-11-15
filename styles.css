@@ -97,6 +97,7 @@
   --glass-border: rgba(255, 255, 255, 0.12);
   --glass-blur:   blur(22px) saturate(140%);
   --glass-text-muted: rgba(255, 255, 255, 0.74);
+  --canvas:       #171925;  /* Farbe am unteren Fotorand, füllt Ränder ausserhalb der App */
 }
 
 [data-theme="light"] {
@@ -126,6 +127,7 @@
   --glass-bg-strong: rgba(255, 255, 255, 0.72);
   --glass-border: rgba(255, 255, 255, 0.65);
   --glass-text-muted: rgba(28, 28, 30, 0.66);
+  --canvas:       #6E707B;
   --shadow-card:    0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-widget:  0 4px 16px rgba(0, 0, 0, 0.06);
   --shadow-inner:   inset 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -284,6 +286,14 @@ button:disabled { opacity: 0.7; cursor: progress; }
 /* ── Foto-Hintergrund ────────────────────────────────────────── */
 /* Fixe Ebene hinter der App, Detailansichten und Popups bleiben deckend */
 body { background: transparent; }
+html { background: var(--canvas); }
+/* iPhone als App auf dem Homescreen: 100dvh/100% ist dort um die Statusleiste zu kurz,
+   unten blieb ein dunkler Streifen. 100vh entspricht dem ganzen Bildschirm. */
+@media (display-mode: standalone) {
+  html, body { height: 100vh; }
+  #app, .boot-screen { height: 100vh; }
+  .login-screen { min-height: 100vh; }
+}
 body::before {
   content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background: linear-gradient(var(--photo-tint), var(--photo-tint)), var(--photo) center / cover no-repeat, var(--bg);
