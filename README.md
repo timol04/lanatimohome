@@ -1,67 +1,58 @@
 # LanaTimoHome
 
-> **WICHTIGE REGEL FÜR KI:** 
-> Ab sofort dürfen in diesem Projekt **NIEMALS MEHR Emojis** verwendet werden! 
-> Nutze stattdessen echte SVG-Icons (z.B. Lucide Icons via CDN) für ein cleanes Design.
+> **Regel für KI:** In diesem Projekt keine Emojis verwenden, weder in der App noch im Code.
+> Für Symbole immer Lucide-Icons (`icon('name', 'sm')`) nutzen. Design-Regeln: `.agents/rules/ui-standards.md`.
 
-Gemeinsames Alltags-Dashboard für Timo & Lana – läuft als PWA auf Tablet und Handy.
+Gemeinsames Alltags-Dashboard für Timo & Lana – läuft als PWA auf dem Wand-iPad und auf dem Handy.
 
-🌐 **Live:** https://timol04.github.io/lanatimohome/
+**Live:** https://timol04.github.io/lanatimohome/
 
 ## Tech-Stack
-- Reines HTML/CSS/JS – kein Build-Prozess nötig
-- [Supabase](https://supabase.com) als Backend (Realtime-Sync + Auth)
-- GitHub Pages als Hosting
-- PWA-installierbar auf iOS & Android
+- Reines HTML/CSS/JS, kein Build-Prozess
+- [Supabase](https://supabase.com) für Login, Datenbank und Live-Synchronisation
+- GitHub Pages als Hosting (Push auf `main` deployt automatisch, ca. 1 Minute)
 
-## Workflow nach jeder Bearbeitung
+## Aufbau
 
-> **Wichtig:** Nach jeder Änderung an den Dateien direkt auf GitHub pushen,
-> damit die Änderungen live gehen (GitHub Actions deployt automatisch).
-
-```bash
-cd /Users/timolanter/Documents/antigravity/lanatimohome
-
-git add -A
-git commit -m "Beschreibung der Änderung"
-git push origin main
+```
+index.html            Lädt Bibliotheken und die App-Dateien (Reihenfolge wichtig)
+styles.css            Design-System: Farben, Grössen-Skala, Bausteine, Animationen
+sw.js                 Service Worker (offline-fähig, immer zuerst Netz)
+js/config.js          Feste Einstellungen: Supabase, Namen, Anbieter, Haltestelle, Zeiten
+js/core.js            Grundbausteine: Daten-Baustein (createStore), Hinweise mit Rückgängig,
+                      Detailansicht, Popups, Formularfelder, Hilfsfunktionen
+js/widgets/*.js       Ein Widget pro Datei (Einkauf, To-Do, Notizen, Essen, Ämtli, …)
+js/edit.js            Bearbeiten-Popup für alle Listen
+js/dashboard.js       Homescreen: Kopfzeile, Widget-Raster, Karussell, Abfahrten, Tageswechsel
+js/screensaver.js     Fotos nach 5 Min., schwarz nach 30 Min.
+js/main.js            Start und Login
+supabase/             Datenbank-Schema, SQL-Skripte und Edge Function (Link-Scanner)
 ```
 
-Für den Push wird der Fine-grained GitHub Token benötigt:
-```bash
-# Token temporär im Remote setzen (wird danach wieder entfernt):
-git remote set-url origin https://timol04:GITHUB_TOKEN@github.com/timol04/lanatimohome.git
-git push origin main
-git remote set-url origin https://github.com/timol04/lanatimohome.git
-```
+### Neues Widget hinzufügen
+1. Datei `js/widgets/meinwidget.js` anlegen:
+   ```js
+   const meinStore = createStore({ table: 'meine_tabelle' });
+   registerWidget({
+     id: 'mein', pos: 15, title: 'Mein Widget', icon: 'star', color: 'var(--c-mein)',
+     open: openMein, store: meinStore,
+     renderContent: () => miniPlaceholder('star', 'Noch leer'),
+     getPreview: () => `${meinStore.items.length} Einträge`
+   });
+   meinStore.onChange(() => { updateWidget('mein'); if (currentOverlay === 'mein') renderMein(); });
+   ```
+2. In `index.html` vor `js/edit.js` einbinden und in `sw.js` bei `ASSETS` ergänzen.
+3. Farbe `--c-mein` in `styles.css` definieren.
+4. Tabelle in Supabase anlegen (Policy und Realtime wie in `supabase/schema.sql`).
 
-Nach dem Push: GitHub Actions deployt automatisch (~1 Min) →  
-https://github.com/timol04/lanatimohome/actions
+`createStore` übernimmt Laden, Live-Synchronisation, Ändern mit Fehleranzeige (`store.patch`),
+Hinzufügen (`store.insert`) und Löschen mit «Rückgängig» (`store.remove`).
 
-## Supabase Setup
-
-### Tabelle `shopping_items`
-```sql
-create table shopping_items (
-  id uuid default gen_random_uuid() primary key,
-  text text not null,
-  is_done boolean default false,
-  created_at timestamptz default now()
-);
-
-alter table shopping_items enable row level security;
-```
-
-### RLS-Policies (nur authentifizierte User)
-```sql
-create policy "Auth read"   on shopping_items for select to authenticated using (true);
-create policy "Auth insert" on shopping_items for insert to authenticated with check (true);
-create policy "Auth update" on shopping_items for update to authenticated using (true);
-create policy "Auth delete" on shopping_items for delete to authenticated using (true);
-```
-
-### Realtime aktivieren
-Supabase Dashboard → **Database → Replication → shopping_items** ✅
+## Supabase
+- Schema aller Tabellen und Zugriffsregeln: `supabase/schema.sql` (+ `supabase/budget.sql`)
+- Live-Synchronisation für alle Tabellen: `supabase/realtime-aktivieren.sql`
+- Zugriff hat nur, wer in `household_members` steht (Funktion `is_household()`).
+- Registrierung neuer Benutzer ist im Supabase-Dashboard ausgeschaltet zu lassen.
 
 ## Lokal entwickeln
 ```bash
@@ -69,17 +60,13 @@ python3 -m http.server 8080
 # → http://localhost:8080
 ```
 
-## Tabs erweitern
-Neue Tabs in `app.js` im `TABS`-Array ergänzen:
-```js
-{
-  id:       'mein-tab',
-  label:    'Mein Tab',
-  icon:     '📅',
-  render:   renderMeinTab,     // Funktion die HTML-String zurückgibt
-  onActivate: initMeinTab,     // Funktion für Event-Listener etc. (oder null)
-}
+## Änderungen veröffentlichen
+```bash
+git add -A
+git commit -m "Beschreibung der Änderung"
+git push origin main
 ```
+Zum Anmelden bei GitHub am besten einmalig `gh auth login` (GitHub CLI) verwenden, statt den Token in die Remote-URL zu schreiben.
+Nach dem Push deployt GitHub Actions automatisch: https://github.com/timol04/lanatimohome/actions
 
-## Deployment
-Push auf `main` → GitHub Actions deployt automatisch auf GitHub Pages.
+Wenn sich Dateien ändern, die der Service Worker zwischenspeichert, die Versionsnummer `CACHE` in `sw.js` erhöhen.
