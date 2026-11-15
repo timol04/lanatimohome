@@ -920,3 +920,29 @@ body.is-sorting .widget:not(.sortable-chosen):not(.sortable-ghost) { animation: 
   background: var(--glass-bg-strong);
   -webkit-backdrop-filter: blur(30px) saturate(150%); backdrop-filter: blur(30px) saturate(150%);
 }
+
+/* ── Nahtloser Übergang Startbildschirm ↔ Detailansicht ──────── */
+/* Das Foto (body::before) bleibt stehen. Die Detailansicht blendet nur Abdunkelung und
+   Inhalt ein, der Startbildschirm tritt dabei leicht zurück (wie beim Öffnen einer App). */
+#overlay-container {
+  background:
+    radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--w-color, transparent) 22%, transparent), transparent 55%),
+    linear-gradient(var(--overlay-tint), var(--overlay-tint));
+  transform: none; opacity: 0; visibility: hidden;
+  transition: opacity 0.32s var(--ease), visibility 0s linear 0.32s;
+}
+#overlay-container.open { transform: none; opacity: 1; visibility: visible; transition: opacity 0.32s var(--ease), visibility 0s; }
+#overlay-container .overlay-header, #overlay-container .overlay-content {
+  transform: translateY(18px) scale(0.985); transition: transform 0.42s var(--ease);
+}
+#overlay-container.open .overlay-header, #overlay-container.open .overlay-content { transform: none; }
+
+#homescreen-header, .carousel-container, .page-indicators {
+  transition: opacity 0.32s var(--ease), transform 0.42s var(--ease);
+}
+#app:has(#overlay-container.open) :is(#homescreen-header, .carousel-container, .page-indicators) {
+  opacity: 0; transform: scale(0.96); pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #overlay-container .overlay-header, #overlay-container .overlay-content { transform: none; }
+}
