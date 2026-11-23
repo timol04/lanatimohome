@@ -44,6 +44,7 @@ function groupedShoppingText(group, text) {
 
 function openShopping() {
   resetListMemory('shopping');
+  resetListMemory('shopping-groups');
   openOverlay({
     key: 'shopping', title: 'Einkaufsliste', color: 'var(--c-shopping)',
     render: () => `
@@ -99,6 +100,10 @@ function renderShoppingList() {
   ];
   list.innerHTML = html.join('');
   primeList('shopping');
+  primeList('shopping-groups');
+  // Die Abhak-Animation nur einmal zeigen. Sonst startet sie bei jedem Neuzeichnen neu
+  // (sofort, nach dem Speichern und nach der Live-Synchronisation) und es flackert.
+  lastToggled = null;
   refreshIcons();
 }
 
@@ -129,7 +134,7 @@ function shoppingGroupHtml(name, arr) {
   const done = arr.filter(i => i.is_done).length;
   const allDone = done === arr.length;
   return `
-    <div class="shop-group ${allDone ? 'is-done' : ''}" data-group="${escapeHtml(name)}">
+    <div class="shop-group ${allDone ? 'is-done' : ''} ${isNewItem('shopping-groups', name) ? 'is-new' : ''}" data-group="${escapeHtml(name)}">
       <div class="shop-group-head">
         <button class="check ${allDone ? 'is-done' : ''}" data-group-act="toggle" aria-label="Alle abhaken" aria-pressed="${allDone}">${icon('check', 'xs')}</button>
         <div class="shop-group-title">${icon('chef-hat', 'xs')}<span class="truncate">${escapeHtml(name)}</span></div>
