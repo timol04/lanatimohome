@@ -516,18 +516,32 @@ function openPickRecipeForDay(day) {
 // ── Zutaten auswählen → Einkaufsliste ────────────────────────
 // Wird für Rezepte und für normale Essensplan-Einträge verwendet.
 // entries: [{ text }] – alle sind zuerst angehakt, mit dem Kreuz fliegt eine Zutat raus.
-function openIngredientPicker({ title, entries, hint = '' }) {
-  if (!entries.length) { showToast('Keine Zutaten vorhanden', 'info'); return; }
-  const picked = entries.map(() => true);
+// scale (nur Rezepte): { persons, entriesFor(persons), groupFor(persons) } – oben steht dann
+// «Für wie viele Personen einkaufen?» und die Mengen rechnen sich beim Ändern sofort um.
+function openIngredientPicker({ title, entries, hint = '', group = '', scale = null }) {
+  let persons = scale ? scale.persons : null;
+  let list = scale ? scale.entriesFor(persons) : entries;
+  if (!list.length) { showToast('Keine Zutaten vorhanden', 'info'); return; }
+  const picked = list.map(() => true);
+  const currentGroup = () => (scale ? scale.groupFor(persons) : group);
   const modal = openModal({
     title,
     body: `
+      ${scale ? `
+      <div class="recipe-persons picker-persons">
+        <span class="field-label">Für wie viele Personen einkaufen?</span>
+        <div class="stepper stepper-lg">
+          <button data-persons="-1" aria-label="Weniger">${icon('minus', 'xs')}</button>
+          <span data-persons-value>${persons}</span>
+          <button data-persons="1" aria-label="Mehr">${icon('plus', 'xs')}</button>
+        </div>
+      </div>` : ''}
       ${hint ? `<p class="modal-text picker-hint">${escapeHtml(hint)}</p>` : ''}
       <div class="picker-tools">
         <button class="pill-btn" data-all="1">${icon('check-check', 'xs')}<span>Alle</span></button>
         <button class="pill-btn" data-all="0">${icon('x', 'xs')}<span>Keine</span></button>
       </div>
-      <div class="picker-list">${entries.map((en, i) => `
+      <div class="picker-list">${list.map((en, i) => `
         <button class="picker-row is-on" data-i="${i}" aria-pressed="true">
           <span class="picker-mark">${icon('check', 'xs')}</span>
           <span class="picker-text">${escapeHtml(en.text)}</span>
@@ -535,27 +549,45 @@ function openIngredientPicker({ title, entries, hint = '' }) {
     actions: [{
       id: 'add', label: 'Hinzufügen', icon: 'shopping-cart', kind: 'primary',
       onClick: async btn => {
-        const texts = entries.filter((_, i) => picked[i]).map(en => en.text);
+        const texts = list.filter((_, i) => picked[i]).map(en => en.text);
         if (!texts.length) { showToast('Nichts ausgewählt', 'info'); return; }
-        const ok = await saveWithFeedback(btn, () => addShoppingTexts(texts), 'Hinzugefügt',
-          texts.length === 1 ? `«${texts[0]}» ist auf der Einkaufsliste` : `${texts.length} Zutaten sind auf der Einkaufsliste`);
+        // Als Gruppe unter dem Namen des Gerichts auf die Einkaufsliste (übersichtlicher)
+        const g = currentGroup();
+        const rows = g ? texts.map(t => groupedShoppingText(g, t)) : texts;
+        const ok = await saveWithFeedback(btn, () => addShoppingTexts(rows), 'Hinzugefügt',
+          g ? `${g}: ${texts.length} ${texts.length === 1 ? 'Zutat' : 'Zutaten'} auf der Einkaufsliste` : (texts.length === 1 ? `«${texts[0]}» ist auf der Einkaufsliste` : `${texts.length} Zutaten sind auf der Einkaufsliste`));
         if (ok) setTimeout(() => closeModal(), 500);
       }
     }]
   });
   const update = () => {
     $$('.picker-row', modal).forEach(row => {
-      const on = picked[Number(row.dataset.i)];
+      const i = Number(row.dataset.i);
+      const on = picked[i];
       row.classList.toggle('is-on', on);
       row.setAttribute('aria-pressed', String(on));
       row.querySelector('.picker-mark').innerHTML = icon(on ? 'check' : 'x', 'xs');
+      row.querySelector('.picker-text').textContent = list[i].text;
     });
+    if (scale) {
+      modal.querySelector('[data-persons-value]').textContent = String(persons);
+      modal.querySelector('[data-persons="-1"]').disabled = persons <= 1;
+      modal.querySelector('[data-persons="1"]').disabled = persons >= 50;
+    }
     const n = picked.filter(Boolean).length;
     const label = modal.querySelector('[data-action="add"] span');
     if (label && !modal.querySelector('[data-action="add"]').dataset.state) label.textContent = n ? `${n} hinzufügen` : 'Nichts ausgewählt';
     refreshIcons();
   };
   modal.querySelector('.modal-body').addEventListener('click', e => {
+    const p = e.target.closest('[data-persons]');
+    if (p && scale) {
+      persons = Math.max(1, Math.min(50, persons + Number(p.dataset.persons)));
+      list = scale.entriesFor(persons); // gleiche Reihenfolge, Auswahl bleibt erhalten
+      haptic(5);
+      update();
+      return;
+    }
     const all = e.target.closest('[data-all]');
     if (all) { picked.fill(all.dataset.all === '1'); haptic(5); update(); return; }
     const row = e.target.closest('.picker-row');
@@ -568,10 +600,13 @@ function openRecipeShopping(id, persons = null) {
   const r = recipeStore.find(id);
   if (!r) return;
   const base = recipeServings(r);
-  const p = persons || base;
   openIngredientPicker({
     title: `Zutaten für ${r.title}`,
-    hint: `Für ${p} ${p === 1 ? 'Person' : 'Personen'}. Antippen, was schon zuhause ist.`,
-    entries: recipeIngredients(r).map(ing => ({ text: formatIngredient(ing, p / base) }))
+    hint: 'Antippen, was schon zuhause ist.',
+    scale: {
+      persons: persons || base,
+      entriesFor: p => recipeIngredients(r).map(ing => ({ text: formatIngredient(ing, p / base) })),
+      groupFor: p => `${r.title} (${p} P.)`
+    }
   });
 }
