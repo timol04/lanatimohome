@@ -36,6 +36,7 @@
   --c-food:       #FF7F50;
   --c-home:       #64d2ff;
   --c-chores:     #F472B6;
+  --c-lana:       #F472B6;
   --c-countdown:  #ff9500;
   --c-budget:     #30d158;
   --c-wifi:       #5e5ce6;
@@ -120,6 +121,7 @@
   --c-packages:     #e6b800;
   --c-prio-2:       #b88a00;
   --c-home:         #0a8fd1;
+  --c-lana:         #DB2777;
 
   --shadow-surface: 0 8px 24px rgba(0, 0, 0, 0.08);
   --photo-tint:   rgba(242, 242, 247, 0.38);
@@ -620,6 +622,7 @@ body.is-sorting .widget:not(.sortable-chosen):not(.sortable-ghost) { animation: 
 }
 .chip svg { width: 12px; height: 12px; }
 .chip-person.is-me { background: color-mix(in srgb, var(--w-color) 18%, transparent); color: var(--w-color); }
+.chip-person.is-lana { background: color-mix(in srgb, var(--c-lana) 18%, transparent); color: var(--c-lana); }
 .chip-today { background: color-mix(in srgb, var(--c-countdown) 18%, transparent); color: var(--c-countdown); }
 .chip-overdue { background: rgba(255, 69, 58, 0.15); color: var(--c-danger); font-weight: 600; }
 
