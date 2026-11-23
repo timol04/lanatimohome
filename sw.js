@@ -1,4 +1,4 @@
-const CACHE = 'lanatimohome-v15';
+const CACHE = 'lanatimohome-v16';
 // Relative Pfade, damit es auch unter /lanatimohome/ auf GitHub Pages funktioniert
 const ASSETS = [
   './',
@@ -18,6 +18,7 @@ const ASSETS = [
   './js/widgets/countdowns.js',
   './js/widgets/notes.js',
   './js/widgets/food.js',
+  './js/widgets/recipes.js',
   './js/widgets/chores.js',
   './js/widgets/packages.js',
   './js/widgets/wishlist.js',

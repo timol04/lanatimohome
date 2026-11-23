@@ -125,3 +125,16 @@ function clearDoneShoppingItems() {
   const ids = shoppingItems().filter(i => i.is_done).map(i => i.id);
   if (ids.length) shoppingStore.remove(ids, ids.length > 1 ? 'Artikel' : 'Artikel');
 }
+
+// Mehrere Artikel auf einmal hinzufügen (z.B. ausgewählte Zutaten aus dem Essensplan). Liefert { error }.
+async function addShoppingTexts(texts) {
+  const rows = texts.map(t => String(t).trim()).filter(Boolean).map(text => ({ text, is_done: false, quantity: 1 }));
+  if (!rows.length) return { error: null };
+  const res = await db.from('shopping_items').insert(rows).select();
+  if (!res.error) {
+    (res.data || []).forEach(r => { if (!shoppingStore.find(r.id)) shoppingStore.items.push(r); });
+    shoppingStore.sort();
+    shoppingStore.emit();
+  }
+  return res;
+}

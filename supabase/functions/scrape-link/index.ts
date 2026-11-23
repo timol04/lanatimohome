@@ -27,7 +27,7 @@ serve(async (req) => {
     });
     if (!userRes.ok) return jsonError('Nicht angemeldet', 401);
 
-    const { url } = await req.json();
+    const { url, mode } = await req.json();
     if (!url) return jsonError('No URL provided', 400);
 
     // Nur normale Web-Links erlauben
@@ -75,6 +75,13 @@ serve(async (req) => {
 
     if (!html && !microlinkData) {
       throw new Error(`Alle Scraping-Versuche für diese URL (z.B. Galaxus) wurden durch Bot-Schutz blockiert.`);
+    }
+
+    // Kochbuch: die Seite selbst zurückgeben, die App liest die Rezept-Angaben (schema.org/Recipe) daraus
+    if (mode === 'html') {
+      return new Response(JSON.stringify({ html: html.slice(0, 3_000_000) }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // Regex-basiertes Auslesen der Meta-Tags

@@ -82,6 +82,7 @@ create table if not exists public.wishlist (
 );
 
 -- budget_entries: siehe budget.sql
+-- recipes (Kochbuch) und food_plan.recipe_id / food_plan.servings: siehe kochbuch.sql
 
 create table if not exists public.settings (
   id integer primary key default 1,

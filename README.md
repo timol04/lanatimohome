@@ -51,7 +51,7 @@ supabase/             Datenbank-Schema, SQL-Skripte und Edge Function (Link-Scan
 Hinzufügen (`store.insert`) und Löschen mit «Rückgängig» (`store.remove`).
 
 ## Supabase
-- Schema aller Tabellen und Zugriffsregeln: `supabase/schema.sql` (+ `supabase/budget.sql`)
+- Schema aller Tabellen und Zugriffsregeln: `supabase/schema.sql` (+ `supabase/budget.sql`, `supabase/kochbuch.sql`)
 - Live-Synchronisation für alle Tabellen: `supabase/realtime-aktivieren.sql`
 - Zugriff hat nur, wer in `household_members` steht (Funktion `is_household()`).
 - Registrierung neuer Benutzer ist im Supabase-Dashboard ausgeschaltet zu lassen.
