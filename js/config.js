@@ -23,7 +23,12 @@ const COURIERS = {
 
 const TRAM_STATION = 'Allschwil, Dorf';
 const TRAM_LABEL = 'Abfahrten Allschwil Dorf';
-const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast?latitude=47.5596&longitude=7.5886&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FZurich';
+// Open-Meteo (kostenlos, ohne Schlüssel): aktuelle Werte, Stundenverlauf und 7-Tage-Vorhersage
+const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast?latitude=47.5596&longitude=7.5886'
+  + '&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,is_day,wind_speed_10m,wind_direction_10m,wind_gusts_10m'
+  + '&hourly=temperature_2m,precipitation_probability,weather_code,is_day'
+  + '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset,uv_index_max'
+  + '&timezone=Europe%2FZurich&forecast_days=7';
 
 const WIDGETS_PER_PAGE = { wide: 9, normal: 8 };  // Querformat-iPad 3×3, sonst 8
 const UNDO_MS = 5000;              // So lange kann man Löschen rückgängig machen
