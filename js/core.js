@@ -158,7 +158,7 @@ function nextDueDate(due, recurrence) {
 // Chips für Person / Wiederholung / Fälligkeit
 function taskChipsHtml(task, { isDone = false } = {}) {
   const chips = [];
-  if (task.assignee) chips.push(`<span class="chip chip-person ${task.assignee === myName() ? 'is-me' : ''}">${icon('user', 'xs')}${escapeHtml(task.assignee)}</span>`);
+  if (task.assignee) chips.push(`<span class="chip chip-person ${task.assignee === myName() ? 'is-me' : ''} ${task.assignee === 'Lana' ? 'is-lana' : ''}">${icon('user', 'xs')}${escapeHtml(task.assignee)}</span>`);
   if (task.recurrence) chips.push(`<span class="chip">${icon('repeat', 'xs')}${escapeHtml(task.recurrence)}</span>`);
   if (task.due) {
     const d = daysUntil(task.due);
