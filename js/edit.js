@@ -16,6 +16,9 @@ const EDIT_CONFIG = {
   shopping: {
     store: () => shoppingStore, label: 'Artikel',
     fields: [{ k: 'text', label: 'Artikel', type: 'textarea', rows: 3 }],
+    // Zutaten eines Gerichts: nur die Zutat bearbeiten, die Zugehörigkeit zum Gericht bleibt
+    toFields: item => ({ ...item, text: shoppingGroup(item)?.label ?? item.text }),
+    fromFields: (f, item) => ({ text: shoppingGroup(item) ? groupedShoppingText(shoppingGroup(item).name, f.text) : f.text }),
     del: id => deleteShoppingItem(id)
   },
   todo: {
@@ -90,7 +93,7 @@ function openEditModal(key, id) {
         onClick: async (btn, modal) => {
           const raw = readFields(modal, fields);
           if (!raw) return;
-          const row = cfg.fromFields ? cfg.fromFields(raw) : raw;
+          const row = cfg.fromFields ? cfg.fromFields(raw, item) : raw;
           const ok = await saveWithFeedback(btn, async () => ({ error: (await store.patch(item.id, row)) ? null : new Error('Speichern fehlgeschlagen') }), 'Gespeichert');
           if (ok) setTimeout(() => closeModal(), 500); // bei Fehler bleibt das Popup offen, Eingaben bleiben erhalten
         }

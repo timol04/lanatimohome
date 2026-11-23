@@ -693,6 +693,25 @@ body.is-sorting .widget:not(.sortable-chosen):not(.sortable-ghost) { animation: 
 }
 .food-input:focus { border-color: var(--c-food); }
 
+/* ── Einkaufsliste: Zutaten eines Gerichts als Gruppe ────────── */
+.shop-group {
+  background: linear-gradient(180deg, var(--bg-surface-top), var(--bg-surface-bot));
+  border-radius: var(--radius-md); margin-bottom: 10px; padding: 6px 6px 8px;
+  box-shadow: var(--highlight-top), var(--shadow-card);
+  border: 1px solid color-mix(in srgb, var(--c-food) 35%, transparent);
+  animation: item-in 0.35s var(--ease);
+}
+.shop-group-head { display: flex; align-items: center; gap: var(--space-sm); padding: 4px 2px 8px 10px; }
+.shop-group-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 1.05rem; }
+.shop-group-title svg { color: var(--c-food); flex-shrink: 0; }
+.shop-group-count { font-size: 0.8rem; color: var(--text-muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.shop-group.is-done .shop-group-title span { text-decoration: line-through; color: var(--text-muted); }
+.shop-group-items .list-item {
+  background: var(--bg-input); box-shadow: none; min-height: 52px; margin-bottom: 6px;
+  padding-top: 6px; padding-bottom: 6px; border-color: transparent !important;
+}
+.shop-group-items .list-item:last-child { margin-bottom: 0; }
+
 /* ── Kochbuch (Reiter im Essensplan) ─────────────────────────── */
 .food-tabs { margin-bottom: var(--space-md); flex-wrap: nowrap; }
 .food-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
@@ -770,6 +789,7 @@ body.is-sorting .widget:not(.sortable-chosen):not(.sortable-ghost) { animation: 
 
 /* Zutaten-Auswahl vor der Einkaufsliste: Haken = kommt drauf, Kreuz = nicht */
 .picker-hint { margin-bottom: var(--space-sm); font-size: 0.9rem; }
+.picker-persons { margin-bottom: var(--space-sm); }
 .picker-tools { display: flex; gap: var(--space-xs); margin-bottom: var(--space-sm); }
 .picker-list { display: flex; flex-direction: column; gap: 6px; }
 .picker-row {

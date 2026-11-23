@@ -210,7 +210,7 @@ function addMealToShopping(day) {
         const mode = modal.querySelector('[data-field="mode"]').dataset.value;
         const parts = ingredients.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
         if (mode === 'items' && parts.length) {
-          openIngredientPicker({ title: `Zutaten für ${meal}`, hint: 'Antippen, was schon zuhause ist.', entries: parts.map(text => ({ text })) });
+          openIngredientPicker({ title: `Zutaten für ${meal}`, hint: 'Antippen, was schon zuhause ist.', entries: parts.map(text => ({ text })), group: meal });
           return;
         }
         if (mode === 'items' && !parts.length) {
